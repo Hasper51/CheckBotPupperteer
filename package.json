@@ -11,9 +11,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "fs": "0.0.1-security",
     "node-telegram-bot-api": "^0.56.0",
     "nodemon": "^2.0.15",
-    "puppeteer": "^13.5.0",
-    "sequelize": "^6.17.0"
+    "puppeteer": "^13.5.0"
   }
 }

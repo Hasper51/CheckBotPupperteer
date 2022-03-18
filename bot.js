@@ -1,77 +1,67 @@
-const TelegramApi = require('node-telegram-bot-api')
-const {gameOptions, againOptions} = require('./options')
-const sequelize = require('./db');
-const UserModel = require('./models');
-
+const TelegramBot = require('node-telegram-bot-api');
+const Json = require('./data.json')
+const fs = require('fs')
+const debug = require('./helpers')
+const puppeteer = require('puppeteer');
 const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
+//const token = process.env.TELEGRAM_BOT_TOKEN;
 
-const bot = new TelegramApi(token, {polling: true})
-
-const chats = {}
+const bot = new TelegramBot(token, {polling: true});
 
 
-const startGame = async (chatId) => {
-    await bot.sendMessage(chatId, `Сейчас я загадаю цифру от 0 до 9, а ты должен ее угадать!`);
-    const randomNumber = Math.floor(Math.random() * 10)
-    chats[chatId] = randomNumber;
-    await bot.sendMessage(chatId, 'Отгадывай', gameOptions);
+let person = {
+    login: '',
+    password: ''
+}
+bot.onText(/\/login (.+)/, (msg, [source, match]) => {
+    person.login = match
+    console.log(person)
+    bot.sendMessage(msg.chat.id, "Теперь пароль")
+    bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
+        person.password = match
+        await main();
+        console.log(person)
+        Json.push(person)
+        fs.writeFileSync("data.json", JSON.stringify(Json))
+        person.login = '';
+        person.password = '';
+        bot.sendMessage(msg.chat.id, "Принято!")
+    })
+})
+
+
+
+async function main(){
+  console.log("MAIN")
+  const browser = await puppeteer.launch({headless:false})
+  const page = await browser.newPage();
+  await page.goto('https://lk.sut.ru/cabinet/')
+
+  let login = person.login;
+  let password = person.password;
+  await page.waitForSelector('#users')
+  await page.type('#users', login)
+  await page.type('#parole', password)
+  await page.click('#logButton')
+  try {
+    await page.waitForSelector('#heading1')
+    console.log('#heading1')
+    // ...
+  } catch (error) {
+    console.log("The element didn't appear.")
+  }
+
+  await browser.close();
 }
 
-const start = async () => {
+bot.onText(/\/start/, msg => {
+    const {id} = msg.chat
+    bot.sendMessage(id, `Привет, ${msg.from.first_name}!
+Здесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`,)
+    bot.sendMessage(id, 
+`Чтобы отправить логин и пароль напишите:
+/login Ваш логин
+/pass Ваш пароль
+`)
+})
 
-    try {
-        await sequelize.authenticate()
-        await sequelize.sync()
-    } catch (e) {
-        console.log('Подключение к бд сломалось', e)
-    }
-
-    bot.setMyCommands([
-        {command: '/start', description: 'Начальное приветствие'},
-        {command: '/info', description: 'Получить информацию о пользователе'},
-        {command: '/game', description: 'Игра угадай цифру'},
-    ])
-
-    bot.on('message', async msg => {
-        const text = msg.text;
-        const chatId = msg.chat.id;
-
-        try {
-            if (text === '/start') {
-                await UserModel.create({chatId})
-                await bot.sendSticker(chatId, 'https://tlgrm.ru/_/stickers/ea5/382/ea53826d-c192-376a-b766-e5abc535f1c9/7.webp')
-                return bot.sendMessage(chatId, `Добро пожаловать в телеграм бот автора ютуб канала ULBI TV`);
-            }
-            if (text === '/info') {
-                const user = await UserModel.findOne({chatId})
-                return bot.sendMessage(chatId, `Тебя зовут ${msg.from.first_name} ${msg.from.last_name}, в игре у тебя правильных ответов ${user.right}, неправильных ${user.wrong}`);
-            }
-            if (text === '/game') {
-                return startGame(chatId);
-            }
-            return bot.sendMessage(chatId, 'Я тебя не понимаю, попробуй еще раз!)');
-        } catch (e) {
-            return bot.sendMessage(chatId, 'Произошла какая то ошибочка!)');
-        }
-
-    })
-
-    bot.on('callback_query', async msg => {
-        const data = msg.data;
-        const chatId = msg.message.chat.id;
-        if (data === '/again') {
-            return startGame(chatId)
-        }
-        const user = await UserModel.findOne({chatId})
-        if (data == chats[chatId]) {
-            user.right += 1;
-            await bot.sendMessage(chatId, `Поздравляю, ты отгадал цифру ${chats[chatId]}`, againOptions);
-        } else {
-            user.wrong += 1;
-            await bot.sendMessage(chatId, `К сожалению ты не угадал, бот загадал цифру ${chats[chatId]}`, againOptions);
-        }
-        await user.save();
-    })
-}
-
-start()

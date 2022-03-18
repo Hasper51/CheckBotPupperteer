@@ -5,7 +5,7 @@ main();
 
 async function main(){
   console.time('FirstWay');
-  const browser = await puppeteer.launch({headless:true})
+  const browser = await puppeteer.launch({headless:false})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/')
   page.on('dialog', async dialog => {

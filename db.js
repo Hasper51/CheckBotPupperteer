@@ -1,11 +1,11 @@
 const {Sequelize} = require('sequelize');
 
 module.exports = new Sequelize(
-    'telega_bot',
+    'telegambot',
     'root',
     'root',
     {
-        host: '5.188.128.98',
+        host: '46.148.239.181',
         port: '6432',
         dialect: 'postgres'
     }
