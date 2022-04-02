@@ -2,14 +2,14 @@ const puppeteer = require('puppeteer');
 const data = require('./data.json');
 const ontime = require('ontime');
 
-// ontime({
-//   cycle: ['weekday 09:05:00', 'weekday 09:45:00', 'weekday 10:20:00', 'weekday 10:50:00', 'weekday 11:30:00', 'weekday 12:05:00', 'weekday 13:05:00', 'weekday 13:50:00', 'weekday 14:25:00', 'weekday 14:50:00', 'weekday 15:35:00', 'weekday 16:10:00', 'weekday 16:25:00', 'weekday 17:00:00', 'weekday 17:50:00', 'weekday 18:10:00', 'weekday 18:55:00', 'weekday 19:25:00','sat 09:05:00', 'sat 09:45:00', 'sat 10:20:00', 'sat 10:50:00', 'sat 11:30:00', 'sat 12:05:00', 'sat 13:05:00', 'sat 13:50:00', 'sat 14:25:00', 'sat 14:50:00', 'sat 15:35:00', 'sat 16:10:00', 'sat 16:25:00', 'sat 17:00:00', 'sat 17:50:00', 'sat 18:10:00', 'sat 18:55:00', 'sat 19:25:00'],
-//   log: true
-// }, function(ot){
-//   main();
-//   ot.done();
-//   return
-// })
+ontime({
+  cycle: ['weekday 09:05:00', 'weekday 09:45:00', 'weekday 10:20:00', 'weekday 10:50:00', 'weekday 11:30:00', 'weekday 12:05:00', 'weekday 13:05:00', 'weekday 13:50:00', 'weekday 14:25:00', 'weekday 14:50:00', 'weekday 15:35:00', 'weekday 16:10:00', 'weekday 16:25:00', 'weekday 17:00:00', 'weekday 17:50:00', 'weekday 18:10:00', 'weekday 18:55:00', 'weekday 19:25:00','sat 09:05:00', 'sat 09:45:00', 'sat 10:20:00', 'sat 10:50:00', 'sat 11:30:00', 'sat 12:05:00', 'sat 13:05:00', 'sat 13:50:00', 'sat 14:25:00', 'sat 14:50:00', 'sat 15:35:00', 'sat 16:10:00', 'sat 16:25:00', 'sat 17:00:00', 'sat 17:50:00', 'sat 18:10:00', 'sat 18:55:00', 'sat 19:25:00'],
+  log: true
+}, function(ot){
+  main();
+  ot.done();
+  return
+})
 
 main();
 async function main(){
