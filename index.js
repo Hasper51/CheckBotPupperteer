@@ -11,7 +11,7 @@ ontime({
   return
 })
 
-main();
+
 async function main(){
   console.time('FirstWay');
   const browser = await puppeteer.launch({headless:false})
