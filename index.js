@@ -30,7 +30,7 @@ async function main(){
     await page.click('#heading1')
     await page.waitForSelector('#menu_li_6118')
     await page.click('#menu_li_6118')
-    //вариант 1 проверено fsdfsf
+    //вариант 1 проверено
     const xp = '//span/a[text()="Начать занятие"]';
     if(xp.length>0){
       console.log(xp)
