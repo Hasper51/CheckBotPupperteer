@@ -4,10 +4,11 @@ const fs = require('fs')
 const debug = require('./helpers')
 const puppeteer = require('puppeteer');
 const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
+const CHAT_ID = require('./chat_id.json')
 
 const bot = new TelegramBot(token, {polling: true});
 
-
+bot.sendMessage(458784044, "Привет")
 let person = {
     login: '',
     password: ''
@@ -34,7 +35,9 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
     
 })
 
-
+async function sendFunction(){
+  fs.writeFileSync("chat_id.json", JSON.stringify(CHAT_ID));
+}
 async function main(){
   console.log("MAIN")
   const browser = await puppeteer.launch({headless:true})
@@ -70,15 +73,19 @@ async function main(){
 
   await browser.close();
 }
-
+bot.onText(/\/activate/, async msga => {
+  CHAT_ID.push({chat_id:msga.from.id});
+  console.log(CHAT_ID);
+  //await sendFunction();
+})
 bot.onText(/\/start/, msg => {
-    const {id} = msg.chat
+    const {id} = msg.chat;
     bot.sendMessage(id, `Привет, ${msg.from.first_name}!
-Здесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`,)
+Здесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`)
     bot.sendMessage(id, 
 `Чтобы отправить логин напишите:
 /login Ваш логин
-Затем отправте пароль командой:
+Затем отправьте пароль командой:
 /pass Ваш пароль
 `)
 })
