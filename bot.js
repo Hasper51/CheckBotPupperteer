@@ -4,7 +4,6 @@ const fs = require('fs')
 const debug = require('./helpers')
 const puppeteer = require('puppeteer');
 const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
-//const token = process.env.TELEGRAM_BOT_TOKEN;
 
 const bot = new TelegramBot(token, {polling: true});
 
@@ -38,7 +37,7 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
 
 async function main(){
   console.log("MAIN")
-  const browser = await puppeteer.launch({headless:false})
+  const browser = await puppeteer.launch({headless:true})
   const page = await browser.newPage();
   try{
         await page.goto('https://lk.sut.ru/cabinet/')
@@ -61,7 +60,6 @@ async function main(){
   await page.click('#logButton')
   try {
     await page.waitForSelector('#heading1', {timeout:5000})
-    console.log('#heading1')
     Json.push(person)
     fs.writeFileSync("data.json", JSON.stringify(Json))
     bot.sendMessage(userId, "Принято!")
