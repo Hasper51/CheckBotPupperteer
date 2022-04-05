@@ -104,7 +104,7 @@ ontime({
   return
 }),
 ontime({
-  cycle: ['weekday 09:45:00', 'weekday 10:20:00', 'weekday 11:30:00', 'weekday 12:05:00', 'weekday 13:50:00', 'weekday 14:25:00', 'weekday 15:35:00', 'weekday 16:10:00', 'weekday 17:00:00', 'weekday 17:50:00', 'weekday 18:55:00', 'weekday 19:25:00', 'sat 09:45:00', 'sat 10:20:00', 'sat 11:30:00', 'sat 12:05:00', 'sat 13:50:00', 'sat 14:25:00', 'sat 15:35:00', 'sat 16:10:00', 'sat 17:00:00', 'sat 17:50:00', 'sat 18:55:00', 'sat 19:25:00']
+  cycle: ['weekday 09:45:00', 'weekday 11:30:00', 'weekday 13:50:00', 'weekday 15:35:00', 'weekday 17:00:00', 'weekday 18:55:00', 'sat 09:45:00', 'sat 11:30:00', 'sat 13:50:00', 'sat 15:35:00', 'sat 17:00:00', 'sat 18:55:00']
   
 }, function(oto){
   secondary();
@@ -112,7 +112,7 @@ ontime({
   return
 }),
 ontime({
-  cycle: ['weekday 10:30:00', 'weekday 12:15:00', 'weekday 14:30:00', 'weekday 16:15:00', 'weekday 17:55:00', 'weekday 19:25:00', 'weekday 17:15:20','sut 10:30:00', 'sut 12:15:00', 'sut 14:30:00', 'sut 16:15:00', 'sut 17:55:00', 'sut 19:25:00']
+  cycle: ['weekday 10:30:00', 'weekday 12:15:00', 'weekday 14:30:00', 'weekday 16:15:00', 'weekday 17:55:00', 'weekday 19:25:00','sut 10:30:00', 'sut 12:15:00', 'sut 14:30:00', 'sut 16:15:00', 'sut 17:55:00', 'sut 19:25:00']
   
 }, async function(ott){
   await secondary()
@@ -124,6 +124,7 @@ ontime({
 function clear(){
   Json.splice(0, Json.length)
   console.log('cleared')
+  console.log(Json)
 }
 
 async function main(){
@@ -158,7 +159,7 @@ async function main(){
       bot.sendMessage(chat_id, "Занятие началось в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
     }catch(e){
       console.log(login+": Link not found")
-      bot.sendMessage(chat_id, "Кнопка начать занятие не найдена в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
+      //bot.sendMessage(chat_id, "Кнопка начать занятие не найдена в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
       Json.push({login:login, password:password, chat_id:chat_id});
       
     }
@@ -187,6 +188,7 @@ async function secondary(){
   date = new Date();
   console.log(date.toString());
   console.time('FirstWay');
+  console.log(Json)
   const browser = await puppeteer.launch({headless:true})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/')
@@ -217,12 +219,13 @@ async function secondary(){
       
     }catch(e){
       console.log(login+": Link not found")
-      bot.sendMessage(chat_id, "Кнопка начать занятие не найдена в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
+      //bot.sendMessage(chat_id, "Кнопка начать занятие не найдена в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
     }
     
     await page.click('#logButton_do_enter');
     
   }
   await browser.close();
+  
   console.timeEnd('FirstWay');
 }
