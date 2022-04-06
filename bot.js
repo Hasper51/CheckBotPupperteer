@@ -172,7 +172,6 @@ bot.onText(/\/keyboard/, msg => {
       bot.sendMessage(chatId, "Выберите пункт меню ", {
         reply_markup: {
           keyboard: keyboard.home_2
-          //selective: 
         }
       })
     }
