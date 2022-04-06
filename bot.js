@@ -6,6 +6,7 @@ const CHAT_ID = require('./CHAT_ID.json')
 const Json = [];
 const fs = require('fs')
 const kb = require('./keyboard-buttons');
+
 const keyboard = require('./keyboard');
 const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
 
@@ -101,20 +102,36 @@ bot.onText(/\/keyboard/, msg => {
     if(element.chat_id === chatId){
       bot.sendMessage(chatId, "Выберите пункт меню ", {
         reply_markup: {
-          keyboard: keyboard.home
+          keyboard: keyboard.home_2
         }
       })
     }
   })
-  
-    
-  
 })
+
+
 bot.on('message', msg => {
   const chatId = msg.chat.id
 
   switch(msg.text){
-    case kb.home.switch_off:
+    case kb.home_1.switch:
+      
+      for(let i = 0; i <data.disabled.length; i++){
+        if(data.disabled[i].chat_id === chatId){
+          data.active.push(data.disabled[i])
+          data.disabled.splice(i, 1)
+          fs.writeFileSync("data.json", JSON.stringify(data))
+          bot.sendMessage(chatId, "Включено")
+          
+          break
+        }
+      }
+      
+      bot.sendMessage(chatId,"Выберите пункт меню:", {
+        reply_markup: {keyboard: keyboard.home_2}
+      })
+      break
+    case kb.home_2.switch:
       for(let i = 0; i <data.active.length; i++){
         if(data.active[i].chat_id === chatId){
           data.disabled.push(data.active[i])
@@ -124,41 +141,46 @@ bot.on('message', msg => {
           break
         }
       }
-      break
-    case kb.home.switch_on:
-      for(let i = 0; i <data.disabled.length; i++){
-        if(data.disabled[i].chat_id === chatId){
-          data.active.push(data.disabled[i])
-          data.disabled.splice(i, 1)
-          fs.writeFileSync("data.json", JSON.stringify(data))
-          bot.sendMessage(chatId,"Включено")
-          break
-        }
-      }
-      break
-    case kb.home.status:
-      let status
-      for(let i = 0; i <data.disabled.length; i++){
-        if(data.disabled[i].chat_id === chatId){
-          status = 'Отключено'
-          bot.sendMessage(chatId,"Текущий статус: Отключено")
-          break
-        }
-      }
-      if(status !== "Отключено")bot.sendMessage(chatId,"Текущий статус: Включено")
-      break
-    case kb.home.manage:
-      bot.sendMessage(chatId,"Выберите пункт настройки:", {
-        reply_markup: {keyboard: keyboard.manage}
-      })
-      break
-    case kb.home.updates:
-      break
-    case kb.back:
       bot.sendMessage(chatId,"Выберите пункт меню:", {
-        reply_markup: {keyboard: keyboard.home}
+        reply_markup: {keyboard: keyboard.home_1}
       })
-      break  
+      break
+    // case kb.home.switch_on:
+    //   for(let i = 0; i <data.disabled.length; i++){
+    //     if(data.disabled[i].chat_id === chatId){
+    //       data.active.push(data.disabled[i])
+    //       data.disabled.splice(i, 1)
+    //       fs.writeFileSync("data.json", JSON.stringify(data))
+    //       bot.sendMessage(chatId,"Включено")
+    //       break
+    //     }
+    //   }
+    //   break
+    // case kb.home.status:
+      // let status
+      // for(let i = 0; i <data.disabled.length; i++){
+      //   if(data.disabled[i].chat_id === chatId){
+      //     status = 'Отключено'
+      //     bot.sendMessage(chatId,"Текущий статус: Отключено")
+      //     break
+      //   }
+      // }
+      // if(status !== "Отключено")bot.sendMessage(chatId,"Текущий статус: Включено")
+    //   break
+    // case kb.home.manage:
+    //   bot.sendMessage(chatId,"Выберите пункт настройки:", {
+    //     reply_markup: {keyboard: keyboard.manage}
+    //   })
+    //   break
+    // case kb.home.updates:
+      
+    //   bot.sendMessage(chatId, text)
+    //   break
+    // case kb.back:
+    //   bot.sendMessage(chatId,"Выберите пункт меню:", {
+    //     reply_markup: {keyboard: keyboard.home}
+    //   })
+    //   break  
   }
 })
 
