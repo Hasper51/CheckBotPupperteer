@@ -94,52 +94,14 @@ bot.onText(/\/start/, msg => {
 `)
 })
 
-bot.on('message', msg => {
+bot.onText(/\/keyboard/, msg => {
   const chatId = msg.chat.id
   
   data.active.concat(data.disabled).forEach((element) => {
     if(element.chat_id === chatId){
-      if(msg.text === 'Отключить'){
-        for(let i = 0; i <data.active.length; i++){
-          if(data.active[i].chat_id === chatId){
-            data.disabled.push(data.active[i])
-            data.active.splice(i, 1)
-            fs.writeFileSync("data.json", JSON.stringify(data))
-            bot.sendMessage(chatId, "Отключено")
-            break
-          }
-        }
-        
-      }else if(msg.text === 'Включить'){
-        
-        for(let i = 0; i <data.disabled.length; i++){
-          if(data.disabled[i].chat_id === chatId){
-            data.active.push(data.disabled[i])
-            data.disabled.splice(i, 1)
-            fs.writeFileSync("data.json", JSON.stringify(data))
-            bot.sendMessage(chatId,"Включено")
-            break
-          }
-        }
-      }else if(msg.text === 'Текущий статус'){
-        let status
-        for(let i = 0; i <data.disabled.length; i++){
-          if(data.disabled[i].chat_id === chatId){
-            status = 'Отключено'
-            bot.sendMessage(chatId,"Текущий статус: Отключено")
-            break
-          }
-        }
-        if(status !== "Отключено")bot.sendMessage(chatId,"Текущий статус: Включено")
-      }
-    
-      bot.sendMessage(chatId, "Выберите статус работы: ", {
+      bot.sendMessage(chatId, "Выберите пункт меню ", {
         reply_markup: {
-          keyboard: [
-            ['Отключить'],
-            ['Включить'],
-            ['Текущий статус']
-          ]
+          keyboard: keyboard.home
         }
       })
     }
@@ -148,7 +110,57 @@ bot.on('message', msg => {
     
   
 })
+bot.on('message', msg => {
+  const chatId = msg.chat.id
 
+  switch(msg.text){
+    case kb.home.switch_off:
+      for(let i = 0; i <data.active.length; i++){
+        if(data.active[i].chat_id === chatId){
+          data.disabled.push(data.active[i])
+          data.active.splice(i, 1)
+          fs.writeFileSync("data.json", JSON.stringify(data))
+          bot.sendMessage(chatId, "Отключено")
+          break
+        }
+      }
+      break
+    case kb.home.switch_on:
+      for(let i = 0; i <data.disabled.length; i++){
+        if(data.disabled[i].chat_id === chatId){
+          data.active.push(data.disabled[i])
+          data.disabled.splice(i, 1)
+          fs.writeFileSync("data.json", JSON.stringify(data))
+          bot.sendMessage(chatId,"Включено")
+          break
+        }
+      }
+      break
+    case kb.home.status:
+      let status
+      for(let i = 0; i <data.disabled.length; i++){
+        if(data.disabled[i].chat_id === chatId){
+          status = 'Отключено'
+          bot.sendMessage(chatId,"Текущий статус: Отключено")
+          break
+        }
+      }
+      if(status !== "Отключено")bot.sendMessage(chatId,"Текущий статус: Включено")
+      break
+    case kb.home.manage:
+      bot.sendMessage(chatId,"Выберите пункт настройки:", {
+        reply_markup: {keyboard: keyboard.manage}
+      })
+      break
+    case kb.home.updates:
+      break
+    case kb.back:
+      bot.sendMessage(chatId,"Выберите пункт меню:", {
+        reply_markup: {keyboard: keyboard.home}
+      })
+      break  
+  }
+})
 
 
 
