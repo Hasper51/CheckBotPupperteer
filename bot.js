@@ -2,13 +2,16 @@ const TelegramBot = require('node-telegram-bot-api');
 const puppeteer = require('puppeteer');
 const data = require('./data.json');
 const ontime = require('ontime');
+const CHAT_ID = require('./CHAT_ID.json')
 const Json = [];
 const fs = require('fs')
+const kb = require('./keyboard-buttons');
+const keyboard = require('./keyboard');
 const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
-const CHAT_ID = require('./chat_id.json')
+
 
 const bot = new TelegramBot(token, {polling: true});
-
+console.log(data.active)
 let person = {
     login: '',
     password: '',
@@ -26,6 +29,7 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
         person.password = match
         person.chat_id = userId
         await register();
+        CHAT_ID.push({first_name:msg.from.first_name,username:msg.from.username, chat_id:msg.from.id})
         console.log(person)
         person.login = '';
         person.password = '';
@@ -63,9 +67,9 @@ async function register(){
   await page.click('#logButton')
   try {
     await page.waitForSelector('#heading1', {timeout:5000})
-    data.push(person)
+    data.active.push(person)
     fs.writeFileSync("data.json", JSON.stringify(data))
-    bot.sendMessage(userId, "Принято!")
+    bot.sendMessage(userId, "Принято! Отправьте любое сообщение, чтобы получить доступ к функционалу.")
   } catch (error) {
     console.log("The element didn't appear.")
     bot.sendMessage(userId, "Повторите попытку! Неверный логин или пароль.")
@@ -90,7 +94,60 @@ bot.onText(/\/start/, msg => {
 `)
 })
 
-
+bot.on('message', msg => {
+  const chatId = msg.chat.id
+  
+  data.active.concat(data.disabled).forEach((element) => {
+    if(element.chat_id === chatId){
+      if(msg.text === 'Отключить'){
+        for(let i = 0; i <data.active.length; i++){
+          if(data.active[i].chat_id === chatId){
+            data.disabled.push(data.active[i])
+            data.active.splice(i, 1)
+            fs.writeFileSync("data.json", JSON.stringify(data))
+            bot.sendMessage(chatId, "Отключено")
+            break
+          }
+        }
+        
+      }else if(msg.text === 'Включить'){
+        
+        for(let i = 0; i <data.disabled.length; i++){
+          if(data.disabled[i].chat_id === chatId){
+            data.active.push(data.disabled[i])
+            data.disabled.splice(i, 1)
+            fs.writeFileSync("data.json", JSON.stringify(data))
+            bot.sendMessage(chatId,"Включено")
+            break
+          }
+        }
+      }else if(msg.text === 'Текущий статус'){
+        let status
+        for(let i = 0; i <data.disabled.length; i++){
+          if(data.disabled[i].chat_id === chatId){
+            status = 'Отключено'
+            bot.sendMessage(chatId,"Текущий статус: Отключено")
+            break
+          }
+        }
+        if(status !== "Отключено")bot.sendMessage(chatId,"Текущий статус: Включено")
+      }
+    
+      bot.sendMessage(chatId, "Выберите статус работы: ", {
+        reply_markup: {
+          keyboard: [
+            ['Отключить'],
+            ['Включить'],
+            ['Текущий статус']
+          ]
+        }
+      })
+    }
+  })
+  
+    
+  
+})
 
 
 
@@ -137,10 +194,10 @@ async function main(){
   page.on('dialog', async dialog => {
     await dialog.accept()
 	});
-  for (let i=0; i<data.length; i++) {
-    let login = data[i].login;
-    let password = data[i].password;
-    let chat_id = data[i].chat_id;
+  for (let i=0; i<data.active.length; i++) {
+    let login = data.active[i].login;
+    let password = data.active[i].password;
+    let chat_id = data.active[i].chat_id;
     await page.waitForSelector('#users')
     await page.type('#users', login)
     await page.type('#parole', password)
