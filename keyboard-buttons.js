@@ -4,21 +4,22 @@ let add_points={
 }
 module.exports = {
 <<<<<<< HEAD
+<<<<<<< HEAD
    
   home_1: {
     switch: 'Включить ✅',
     ...add_points
 =======
+=======
+   
+>>>>>>> alfa 1.2.2
   home_1: {
     switch: 'Включить ✅',
-    // switch_on: 'Включить',
-    // switch_off: 'Отключить',
-    status: 'Текущий статус',
-    manage: 'Управление',
-    updates: 'Обновления'
+    ...add_points
   }, 
   home_2: {
     switch: 'Отключить ❌',
+<<<<<<< HEAD
     // switch_on: 'Включить',
     // switch_off: 'Отключить',
     status: 'Текущий статус',
@@ -28,6 +29,8 @@ module.exports = {
   }, 
   home_2: {
     switch: 'Отключить ❌',
+=======
+>>>>>>> alfa 1.2.2
     ...add_points
   },
   

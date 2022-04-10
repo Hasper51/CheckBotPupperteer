@@ -156,7 +156,6 @@ async function register(){
 
   await browser.close();
 }
-
 bot.onText(/\/start/, msg => {
     const {id} = msg.chat;
     bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЗдесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`)
@@ -390,7 +389,7 @@ function clear(){
 function getWeekday(){
   weekday = new Date().getDay()-1;
 }
-
+main()
 async function main(){
   let date = new Date();
   let time = date.getHours();
