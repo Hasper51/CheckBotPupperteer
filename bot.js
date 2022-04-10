@@ -2,13 +2,17 @@ const TelegramBot = require('node-telegram-bot-api');
 const puppeteer = require('puppeteer');
 const data = require('./data.json');
 const ontime = require('ontime');
+const CHAT_ID = require('./CHAT_ID.json')
 const Json = [];
 const fs = require('fs')
+const kb = require('./keyboard-buttons');
+
+const keyboard = require('./keyboard');
 const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
-const CHAT_ID = require('./chat_id.json')
+
 
 const bot = new TelegramBot(token, {polling: true});
-
+console.log(data.active)
 let person = {
     login: '',
     password: '',
@@ -63,9 +67,10 @@ async function register(){
   await page.click('#logButton')
   try {
     await page.waitForSelector('#heading1', {timeout:5000})
-    data.push(person)
+    data.active.push(person)
     fs.writeFileSync("data.json", JSON.stringify(data))
-    bot.sendMessage(userId, "Принято!")
+    bot.sendMessage(userId, "Принято! Ознакомиться с командами можно через меню.")
+    console.log(userId+': Зарегистрировалась')
   } catch (error) {
     console.log("The element didn't appear.")
     bot.sendMessage(userId, "Повторите попытку! Неверный логин или пароль.")
@@ -75,7 +80,7 @@ async function register(){
 }
 bot.onText(/\/activate/, async msga => {
   CHAT_ID.push({first_name:msga.from.first_name,username:msga.from.username, chat_id:msga.from.id});
-  console.log(CHAT_ID);
+  console.log(msga);
   //await sendFunction();
 })
 bot.onText(/\/start/, msg => {
@@ -90,8 +95,63 @@ bot.onText(/\/start/, msg => {
 `)
 })
 
+bot.onText(/\/keyboard/, msg => {
+  const chatId = msg.chat.id
+  
+  data.active.concat(data.disabled).forEach((element) => {
+    if(element.chat_id === chatId){
+      bot.sendMessage(chatId, "Выберите пункт меню ", {
+        reply_markup: {
+          keyboard: keyboard.home_2
+        }
+      })
+    }
+  })
+})
 
 
+bot.on('message', msg => {
+  const chatId = msg.chat.id
+
+  switch(msg.text){
+    case kb.home_1.switch:
+      
+      for(let i = 0; i <data.disabled.length; i++){
+        if(data.disabled[i].chat_id === chatId){
+          data.active.push(data.disabled[i])
+          data.disabled.splice(i, 1)
+          fs.writeFileSync("data.json", JSON.stringify(data))
+          console.log(msg.from.first_name+" : скрипт включен")
+          bot.sendMessage(chatId, "Включено")
+          
+          break
+        }
+      }
+      
+      bot.sendMessage(chatId,"Выберите пункт меню:", {
+        reply_markup: {keyboard: keyboard.home_2}
+      })
+      break
+    case kb.home_2.switch:
+      for(let i = 0; i <data.active.length; i++){
+        if(data.active[i].chat_id === chatId){
+          data.disabled.push(data.active[i])
+          data.active.splice(i, 1)
+          fs.writeFileSync("data.json", JSON.stringify(data))
+          console.log(msg.from.first_name+" : скрипт отключен")
+          bot.sendMessage(chatId, "Отключено")
+          break
+        }
+      }
+      bot.sendMessage(chatId,"Выберите пункт меню:", {
+        reply_markup: {keyboard: keyboard.home_1}
+      })
+      break
+    case kb.home_2.updates:
+      bot.sendMessage(chatId,"https://telegra.ph/AutoCheckBot-Beta-20-04-07")
+      break
+  }
+})
 
 
 
@@ -112,7 +172,7 @@ ontime({
   return
 }),
 ontime({
-  cycle: ['weekday 10:30:00', 'weekday 12:15:00', 'weekday 14:30:00', 'weekday 16:15:00', 'weekday 17:55:00', 'weekday 19:25:00','sut 10:30:00', 'sut 12:15:00', 'sut 14:30:00', 'sut 16:15:00', 'sut 17:55:00', 'sut 19:25:00']
+  cycle: ['weekday 10:30:00', 'weekday 12:15:00', 'weekday 14:30:00', 'weekday 16:15:00', 'weekday 17:55:00', 'weekday 19:25:00','sat 10:30:00', 'sat 12:15:00', 'sat 14:30:00', 'sat 16:15:00', 'sat 17:55:00', 'sat 19:25:00']
   
 }, async function(ott){
   await secondary()
@@ -124,9 +184,9 @@ ontime({
 function clear(){
   Json.splice(0, Json.length)
   console.log('cleared')
-  console.log(Json)
+  
 }
-
+main()
 async function main(){
   date = new Date();
   console.log(date.toString());
@@ -137,10 +197,10 @@ async function main(){
   page.on('dialog', async dialog => {
     await dialog.accept()
 	});
-  for (let i=0; i<data.length; i++) {
-    let login = data[i].login;
-    let password = data[i].password;
-    let chat_id = data[i].chat_id;
+  for (let i=0; i<data.active.length; i++) { 
+    let login = data.active[i].login;
+    let password = data.active[i].password;
+    let chat_id = data.active[i].chat_id;
     await page.waitForSelector('#users')
     await page.type('#users', login)
     await page.type('#parole', password)
@@ -149,16 +209,20 @@ async function main(){
     await page.click('#heading1')
     await page.waitForSelector('#menu_li_6118')
     await page.click('#menu_li_6118')
-    await page.waitForSelector('#bak')
+    // await page.waitForSelector('#bak').catch(error =>{
+    //   console.log(error)
+    // })
+      
+    
     //вариант 1 проверено
     try{
       const xp = '//span/a[text()="Начать занятие"]';
-      const el = await page.waitForXPath(xp, {timeout: 300});
+      const el = await page.waitForXPath(xp, {timeout: 500});
       await el.click();
-      console.log(login+": НАЖАТО!")
+      console.log("\x1b[32m", login+": НАЖАТО!")
       bot.sendMessage(chat_id, "Занятие началось в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
     }catch(e){
-      console.log(login+": Link not found")
+      console.log("\x1b[31m", login+": Link not found")
       //bot.sendMessage(chat_id, "Кнопка начать занятие не найдена в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
       Json.push({login:login, password:password, chat_id:chat_id});
       
@@ -180,7 +244,7 @@ async function main(){
     
   }
   await browser.close();
-  console.log(Json)
+  
   console.timeEnd('FirstWay');
 }
 
@@ -188,7 +252,7 @@ async function secondary(){
   date = new Date();
   console.log(date.toString());
   console.time('FirstWay');
-  console.log(Json)
+  
   const browser = await puppeteer.launch({headless:true})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/')
@@ -207,18 +271,21 @@ async function secondary(){
     await page.click('#heading1')
     await page.waitForSelector('#menu_li_6118')
     await page.click('#menu_li_6118')
-    await page.waitForSelector('#bak')
+    // await page.waitForSelector('#bak').catch(error =>{
+    //   console.log(error)
+      
+    // })
     //вариант 1 проверено
     try{
       const xp = '//span/a[text()="Начать занятие"]';
-      const el = await page.waitForXPath(xp, {timeout: 300});
+      const el = await page.waitForXPath(xp, {timeout: 400});
       await el.click();
-      console.log(login+": -----НАЖАТО!-----")
+      console.log("\x1b[32m", login+": НАЖАТО!")
       bot.sendMessage(chat_id, "Занятие началось в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
       Json.splice(i,1)
       
     }catch(e){
-      console.log(login+": Link not found")
+      console.log("\x1b[31m", login+": Link not found")
       //bot.sendMessage(chat_id, "Кнопка начать занятие не найдена в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
     }
     
