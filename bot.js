@@ -8,8 +8,8 @@ const fs = require('fs')
 const kb = require('./keyboard-buttons');
 
 const keyboard = require('./keyboard');
-const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
-
+//const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
+const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
 
 const bot = new TelegramBot(token, {polling: true});
 console.log(data.active)
@@ -248,7 +248,7 @@ async function main(){
   }
   await browser.close();
   
-  console.timeEnd("\x1b[47m", 'FirstWay');
+  console.timeEnd("\x1b[37m", 'FirstWay');
 }
 
 async function secondary(){
@@ -301,5 +301,5 @@ async function secondary(){
   }
   await browser.close();
   
-  console.timeEnd("\x1b[47m", 'FirstWay');
+  console.timeEnd("\x1b[37m", 'FirstWay');
 }
