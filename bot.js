@@ -6,11 +6,16 @@ const CHAT_ID = require('./CHAT_ID.json')
 const Json = [];
 const fs = require('fs')
 const kb = require('./keyboard-buttons');
-
+let weekday;
 const keyboard = require('./keyboard');
 //const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
 const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
-
+const dis = ["Теория информации, данные, знания",
+"Инфокоммуникационные системы и сети",
+"Объектно-ориентированное проектирование графического интерфейса",
+"Социология",
+"Экология"
+]
 const bot = new TelegramBot(token, {polling: true});
 console.log(data.active)
 let person = {
@@ -150,6 +155,36 @@ bot.on('message', msg => {
     case kb.home_2.updates:
       bot.sendMessage(chatId,"https://telegra.ph/AutoCheckBot-Beta-20-04-07")
       break
+    case kb.home_2.manage:
+      bot.sendMessage(chatId, "Выберите пункт меню ", {
+        reply_markup: {
+          keyboard: keyboard.manage
+        }
+      })
+      break
+    case kb.manage.settings:
+      dis.forEach((item, index) => {
+        bot.sendMessage(chatId, item, {
+        
+          reply_markup: {
+            inline_keyboard: [
+              [{
+                text: "Вкл",
+                callback_data: 'ff'
+              }]
+            ]
+          }
+        })
+      })
+      
+      break  
+    case kb.back:
+      bot.sendMessage(chatId, "Выберите пункт меню ", {
+        reply_markup: {
+          keyboard: keyboard.home_2
+        }
+      })
+      break
   }
 })
 
@@ -159,6 +194,7 @@ ontime({
   cycle: ['weekday 09:05:00', 'weekday 10:50:00', 'weekday 13:05:00', 'weekday 14:50:00', 'weekday 16:25:00', 'weekday 18:10:00','sat 09:05:00', 'sat 10:50:00', 'sat 13:05:00', 'sat 14:50:00', 'sat 16:25:00', 'sat 18:10:00']
   
 }, function(ot){
+  getWeekday();
   main();
   ot.done();
   return
@@ -187,8 +223,14 @@ function clear(){
   
 }
 
+function getWeekday(){
+  weekday = new Date().getDay()-1;
+}
+getWeekday();
+main();
 async function main(){
-  date = new Date();
+  let date = new Date();
+  let time = date.getHours();
   console.log("\x1b[37m", date.toString());
   console.time('FirstWay');
   const browser = await puppeteer.launch({headless:true})
@@ -198,6 +240,9 @@ async function main(){
     await dialog.accept()
 	});
   for (let i=0; i<data.active.length; i++) { 
+    
+    if(!data.active[i].disciplines[weekday][time])continue
+    
     let login = data.active[i].login;
     let password = data.active[i].password;
     let chat_id = data.active[i].chat_id;
@@ -234,9 +279,9 @@ async function main(){
     
     //вариант 2 нужно проверить
     
-    // const linkHandlers = await page.$x("//tr/td/span/a[text()='Начать занятие']");
+    // const linkHandlers = await page.$x("//*[@id='rightpanel']/div/table/tbody/tr[2]/td[2]/b/text()='Теория информации, данные, знания'");
     // console.log(linkHandlers)
-
+    
     // if (linkHandlers.length > 0) {
     //   await linkHandlers[0].click();
     // } else {
@@ -247,12 +292,12 @@ async function main(){
     
   }
   await browser.close();
-  
-  console.timeEnd("\x1b[47m", 'FirstWay');
+  console.log("\x1b[37m")
+  console.timeEnd('FirstWay');
 }
 
 async function secondary(){
-  date = new Date();
+  let date = new Date();
   console.log("\x1b[37m", date.toString());
   console.time('FirstWay');
   
@@ -300,6 +345,6 @@ async function secondary(){
     
   }
   await browser.close();
-  
-  console.timeEnd("\x1b[47m", 'FirstWay');
+  console.log("\x1b[37m")
+  console.timeEnd('FirstWay');
 }

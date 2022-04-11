@@ -14,6 +14,7 @@ module.exports = {
   },
   
   manage: {
+    settings: 'Предметы'
     
   },
   back: 'Назад',
