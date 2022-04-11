@@ -186,10 +186,10 @@ function clear(){
   console.log('cleared')
   
 }
-main()
+
 async function main(){
   date = new Date();
-  console.log(date.toString());
+  console.log("\x1b[37m", date.toString());
   console.time('FirstWay');
   const browser = await puppeteer.launch({headless:true})
   const page = await browser.newPage();
@@ -201,18 +201,21 @@ async function main(){
     let login = data.active[i].login;
     let password = data.active[i].password;
     let chat_id = data.active[i].chat_id;
-    await page.waitForSelector('#users')
-    await page.type('#users', login)
-    await page.type('#parole', password)
-    await page.click('#logButton')
-    await page.waitForSelector('#heading1')
-    await page.click('#heading1')
-    await page.waitForSelector('#menu_li_6118')
-    await page.click('#menu_li_6118')
+    try {
+      await page.waitForSelector('#users')
+      await page.type('#users', login)
+      await page.type('#parole', password)
+      await page.click('#logButton')
+      await page.waitForSelector('#heading1')
+      await page.click('#heading1')
+      await page.waitForSelector('#menu_li_6118')
+      await page.click('#menu_li_6118')
     // await page.waitForSelector('#bak').catch(error =>{
     //   console.log(error)
     // })
-      
+    }catch(error){
+      console.log("\x1b[33m", error)
+    }  
     
     //вариант 1 проверено
     try{
@@ -245,12 +248,12 @@ async function main(){
   }
   await browser.close();
   
-  console.timeEnd('FirstWay');
+  console.timeEnd("\x1b[47m", 'FirstWay');
 }
 
 async function secondary(){
   date = new Date();
-  console.log(date.toString());
+  console.log("\x1b[37m", date.toString());
   console.time('FirstWay');
   
   const browser = await puppeteer.launch({headless:true})
@@ -263,18 +266,22 @@ async function secondary(){
     let login = Json[i].login;
     let password = Json[i].password;
     let chat_id = Json[i].chat_id;
-    await page.waitForSelector('#users')
-    await page.type('#users', login)
-    await page.type('#parole', password)
-    await page.click('#logButton')
-    await page.waitForSelector('#heading1')
-    await page.click('#heading1')
-    await page.waitForSelector('#menu_li_6118')
-    await page.click('#menu_li_6118')
+    try{
+      await page.waitForSelector('#users')
+      await page.type('#users', login)
+      await page.type('#parole', password)
+      await page.click('#logButton')
+      await page.waitForSelector('#heading1')
+      await page.click('#heading1')
+      await page.waitForSelector('#menu_li_6118')
+      await page.click('#menu_li_6118')
     // await page.waitForSelector('#bak').catch(error =>{
     //   console.log(error)
       
     // })
+    }catch(error){
+      console.log("\x1b[33m", error)
+    }
     //вариант 1 проверено
     try{
       const xp = '//span/a[text()="Начать занятие"]';
@@ -294,5 +301,5 @@ async function secondary(){
   }
   await browser.close();
   
-  console.timeEnd('FirstWay');
+  console.timeEnd("\x1b[47m", 'FirstWay');
 }
