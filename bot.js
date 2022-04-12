@@ -6,10 +6,13 @@ const CHAT_ID = require('./CHAT_ID.json')
 const Json = [];
 const fs = require('fs')
 const kb = require('./keyboard-buttons');
-let weekday;
+const disciplines = require('./disciplines.json');
 const keyboard = require('./keyboard');
+let weekday;
+
 //const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
 const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
+
 const dis = ["Теория информации, данные, знания",
 "Инфокоммуникационные системы и сети",
 "Объектно-ориентированное проектирование графического интерфейса",
@@ -90,13 +93,8 @@ bot.onText(/\/activate/, async msga => {
 })
 bot.onText(/\/start/, msg => {
     const {id} = msg.chat;
-    bot.sendMessage(id, `Привет, ${msg.from.first_name}!
-Здесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`)
-    bot.sendMessage(id, 
-`Чтобы отправить логин напишите:
-/login Ваш логин
-Затем отправьте пароль командой:
-/pass Ваш пароль
+    bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЗдесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`)
+    bot.sendMessage(id, `Чтобы отправить логин напишите:\n/login Ваш логин\nЗатем отправьте пароль командой:\n/pass Ваш пароль
 `)
 })
 
@@ -108,10 +106,56 @@ bot.onText(/\/keyboard/, msg => {
       bot.sendMessage(chatId, "Выберите пункт меню ", {
         reply_markup: {
           keyboard: keyboard.home_2
+          //selective: 
         }
       })
     }
   })
+})
+
+bot.on('callback_query', query => {
+  const { chat, message_id, text } = query.message
+  let data;
+  let status_enabled = 'Включено ✅'
+  let status_disabled = 'Отключено ❌'
+  try {
+    data = JSON.parse(query.data)
+  }catch(e) {
+    throw new Error(e.message)
+  }
+  console.log(query)
+  let {userIndex, itemIndex} = data;
+  
+    
+  try {
+  let disciplineStatus = disciplines[userIndex].disciplines[itemIndex].status
+  if(disciplineStatus){
+    disciplines[userIndex].disciplines[itemIndex].status=false;
+  }else{
+    disciplines[userIndex].disciplines[itemIndex].status=true;
+  }
+  disciplines[userIndex].disciplines[itemIndex].status = disciplineStatus==true?false:true;
+  fs.writeFileSync("disciplines.json", JSON.stringify(disciplines))
+  
+  bot.editMessageText(`${text}`, {
+    chat_id: chat.id,
+    message_id: message_id,
+    reply_markup: { 
+      inline_keyboard: [[
+        {
+          text: !disciplineStatus?status_enabled:status_disabled,
+          callback_data: JSON.stringify({
+            userIndex: userIndex,
+            itemIndex: itemIndex
+            
+          })   
+        }
+      ]]
+    }
+  })
+  }catch(e){
+    throw new Error("Error writing")
+  }
 })
 
 
@@ -163,14 +207,22 @@ bot.on('message', msg => {
       })
       break
     case kb.manage.settings:
-      dis.forEach((item, index) => {
-        bot.sendMessage(chatId, item, {
-        
+      let index = disciplines.findIndex(id => id.chat_id == chatId)
+      let status_enabled = 'Включено ✅'
+      let status_disabled = 'Отключено ❌'
+      disciplines[index].disciplines.forEach((item, i) => {
+        let button_status = item.status
+        bot.sendMessage(chatId, 
+          `${item.title}\n${item.type=='lecture'?"Лекция":"Практика"}`, 
+        {
           reply_markup: {
             inline_keyboard: [
               [{
-                text: "Вкл",
-                callback_data: 'ff'
+                text: button_status?status_enabled:status_disabled,
+                callback_data: JSON.stringify({
+                  userIndex: index,
+                  itemIndex: i
+                }) 
               }]
             ]
           }
@@ -226,8 +278,8 @@ function clear(){
 function getWeekday(){
   weekday = new Date().getDay()-1;
 }
-getWeekday();
-main();
+//getWeekday();
+//main();
 async function main(){
   let date = new Date();
   let time = date.getHours();

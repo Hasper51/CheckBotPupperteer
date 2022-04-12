@@ -14,7 +14,7 @@ module.exports = {
   },
   
   manage: {
-    settings: 'Предметы'
+    settings: 'Редактировать дисциплины'
     
   },
   back: 'Назад',
