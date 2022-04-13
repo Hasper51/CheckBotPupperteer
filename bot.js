@@ -13,12 +13,6 @@ let weekday;
 //const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
 const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
 
-const dis = ["Теория информации, данные, знания",
-"Инфокоммуникационные системы и сети",
-"Объектно-ориентированное проектирование графического интерфейса",
-"Социология",
-"Экология"
-]
 const bot = new TelegramBot(token, {polling: true});
 console.log(data.active)
 let person = {
@@ -112,6 +106,25 @@ bot.onText(/\/keyboard/, msg => {
     }
   })
 })
+//Отправка сервисных сообщений всем
+bot.onText(/\/smessage/, (msg) => {
+  const chatId = msg.chat.id
+  if(chatId === 458784044){
+    bot.sendMessage(chatId, "Напишите и отправьте сообщениие, оно будет разослано всем.\n Чтобы отменить рассылку отправьте «Отмена»");
+    bot.once('message', (msg) => {
+      if(msg.text.toLowerCase() =="отмена"){
+        
+      }else {
+        data.active.concat(data.disabled).forEach((element) => {
+          bot.sendMessage(element.chat_id, msg.text)
+        })
+      }
+      
+    })
+    
+  }
+})
+
 
 bot.on('callback_query', query => {
   const { chat, message_id, text } = query.message
