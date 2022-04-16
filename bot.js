@@ -8,16 +8,22 @@ const fs = require('fs')
 const kb = require('./keyboard-buttons');
 const disciplines = require('./disciplines.json');
 const keyboard = require('./keyboard');
+const schedule = require('./parce')
 let weekday;
-
 //const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
 const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
-
+function addSchedule(){
+  data.active.forEach(elem => {
+    schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', elem.group)
+  })
+}
+//addSchedule()
 const bot = new TelegramBot(token, {polling: true});
 console.log(data.active)
 let person = {
     login: '',
     password: '',
+    group: '',
     chat_id: ''
 }
 let userId;
@@ -29,6 +35,7 @@ bot.onText(/\/login (.+)/, (msg, [source, match]) => {
 })
 bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
     if(person.login!=''){
+        bot.sendMessage(msg.chat.id, "Идет проверка...")
         person.password = match
         person.chat_id = userId
         await register();
@@ -52,7 +59,7 @@ async function register(){
         await page.goto('https://lk.sut.ru/cabinet/')
   } catch (error){
         console.error(error)
-        console.log("FAILED")
+        console.log("FAILED. Сайт долго отвечат на запрос.")
         bot.sendMessage(userId, "Повторите попытку позже! Сайт долго отвечат на запрос.")
         await browser.close();
         return
@@ -69,12 +76,55 @@ async function register(){
   await page.click('#logButton')
   try {
     await page.waitForSelector('#heading1', {timeout:5000})
+  }catch(error){
+    console.log(person.chat_id+" :Неверный логин или пароль.")
+    bot.sendMessage(userId, "Повторите попытку! Неверный логин или пароль.")
+    return
+  } 
+  try{ 
+    await page.waitForSelector("#logo")
+    await page.click("#heading1 > h5:nth-child(1) > div:nth-child(1) > font:nth-child(2) > nobr:nth-child(1)")
+    await page.waitForSelector("#menu_li_6118")
+    await page.click('#menu_li_6118')
+    await page.waitForSelector('a.style_gr:nth-child(1)')
+    const group = await page.$eval('a.style_gr:nth-child(1) > b:nth-child(1)', el => el.innerText)
+    await page.click('#menu_li_6119')
+    await page.waitForSelector('.smalltab > thead:nth-child(1) > tr:nth-child(1)')
+    const sub = await page.evaluate(() => {
+        let subjectsList = [];
+        let totalSearchResults = document.querySelectorAll('.smalltab > thead:nth-child(1) > tr:nth-child(1) > th');
+        totalSearchResults.forEach(i => subjectsList.push(
+          {
+            title: i.innerText,
+            type: "Лекция",
+            status: true
+          }, 
+          {
+            title: i.innerText,
+            type: "Практические занятия",
+            status: true
+          }
+        ));
+
+        subjectsList = subjectsList.slice((4))
+        return subjectsList
+    })
+    
+    disciplines.push({
+      chat_id: person.chat_id,
+      disciplines: sub
+    })
+    fs.writeFileSync("disciplines.json", JSON.stringify(disciplines))
+
+    person.group=group
     data.active.push(person)
     fs.writeFileSync("data.json", JSON.stringify(data))
+    await schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', group)
+    
     bot.sendMessage(userId, "Принято! Ознакомиться с командами можно через меню.")
-    console.log(userId+': Зарегистрировалась')
+    console.log(userId+': Зарегистрировался')
   } catch (error) {
-    console.log("The element didn't appear.")
+    console.log("Повторите попытку! Неверный логин или пароль.")
     bot.sendMessage(userId, "Повторите попытку! Неверный логин или пароль.")
   }
 
@@ -126,28 +176,49 @@ bot.onText(/\/smessage/, (msg) => {
 })
 
 
+
+
+
+
 bot.on('callback_query', query => {
   const { chat, message_id, text } = query.message
-  let data;
+  let data_l;
   let status_enabled = 'Включено ✅'
   let status_disabled = 'Отключено ❌'
   try {
-    data = JSON.parse(query.data)
+    data_l = JSON.parse(query.data)
   }catch(e) {
     throw new Error(e.message)
   }
-  console.log(query)
-  let {userIndex, itemIndex} = data;
+  
+  let {userIndex, itemIndex} = data_l;
   
     
   try {
   let disciplineStatus = disciplines[userIndex].disciplines[itemIndex].status
-  if(disciplineStatus){
-    disciplines[userIndex].disciplines[itemIndex].status=false;
-  }else{
-    disciplines[userIndex].disciplines[itemIndex].status=true;
-  }
+  // if(disciplineStatus){
+  //   disciplines[userIndex].disciplines[itemIndex].status=false;
+  // }else{
+  //   disciplines[userIndex].disciplines[itemIndex].status=true;
+  // }
   disciplines[userIndex].disciplines[itemIndex].status = disciplineStatus==true?false:true;
+  
+  for(let i=0; i<data.active.length; i++){
+    if(data.active[i].chat_id=== chat.id){
+      data.active[i].disciplines.forEach(element => {
+        for (let value of Object.values(element)) {
+          if(value!==null){
+            if (value.title == disciplines[userIndex].disciplines[itemIndex].title && value.type == disciplines[userIndex].disciplines[itemIndex].type){
+              value.status = disciplines[userIndex].disciplines[itemIndex].status
+              break
+            }
+          }
+        }
+      })
+    }
+  }
+  
+  fs.writeFileSync("data.json", JSON.stringify(data))
   fs.writeFileSync("disciplines.json", JSON.stringify(disciplines))
   
   bot.editMessageText(`${text}`, {
@@ -226,7 +297,7 @@ bot.on('message', msg => {
       disciplines[index].disciplines.forEach((item, i) => {
         let button_status = item.status
         bot.sendMessage(chatId, 
-          `${item.title}\n${item.type=='lecture'?"Лекция":"Практика"}`, 
+          `${item.title}\n${item.type}`, 
         {
           reply_markup: {
             inline_keyboard: [
@@ -296,17 +367,25 @@ function getWeekday(){
 async function main(){
   let date = new Date();
   let time = date.getHours();
+  let timeConverter = {
+    9:1,
+    10:2,
+    13:3,
+    14:4,
+    16:5,
+    18:6
+  }
   console.log("\x1b[37m", date.toString());
   console.time('FirstWay');
   const browser = await puppeteer.launch({headless:true})
   const page = await browser.newPage();
-  await page.goto('https://lk.sut.ru/cabinet/')
+  await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
   page.on('dialog', async dialog => {
     await dialog.accept()
 	});
   for (let i=0; i<data.active.length; i++) { 
-    
-    if(!data.active[i].disciplines[weekday][time])continue
+    //Нужно проверить
+    if(!data.active[i].disciplines[weekday][timeConverter.time])continue
     
     let login = data.active[i].login;
     let password = data.active[i].password;
