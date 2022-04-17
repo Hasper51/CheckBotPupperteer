@@ -13,11 +13,15 @@ let weekday;
 //const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
 const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
 function addSchedule(){
-  data.active.forEach(elem => {
-    schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', elem.group)
+  data.active.forEach((elem, index) => {
+    try{
+      schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', elem.group)
+    }catch(e){
+      console.log("Не удалось загрузать расписание для: "+elem.group)
+    }
   })
 }
-//addSchedule()
+
 const bot = new TelegramBot(token, {polling: true});
 console.log(data.active)
 let person = {
@@ -93,18 +97,31 @@ async function register(){
     const sub = await page.evaluate(() => {
         let subjectsList = [];
         let totalSearchResults = document.querySelectorAll('.smalltab > thead:nth-child(1) > tr:nth-child(1) > th');
-        totalSearchResults.forEach(i => subjectsList.push(
-          {
-            title: i.innerText,
-            type: "Лекция",
-            status: true
-          }, 
-          {
-            title: i.innerText,
-            type: "Практические занятия",
-            status: true
+        totalSearchResults.forEach(i => {
+          let title = i.textContent
+          if(title=='Военная подготовка' || title=='Элективные дисциплины по физической культуре и спорту'){
+              subjectsList.push(
+                  {
+                      title: title,
+                      type: "Практические занятия",
+                      status: true
+                  }
+              )
+          }else{
+              subjectsList.push(
+                  {
+                  title: title,
+                  type: "Лекция",
+                  status: true
+                  }, 
+                  {
+                  title: title,
+                  type: "Практические занятия",
+                  status: true
+                  }
+              )
           }
-        ));
+      });
 
         subjectsList = subjectsList.slice((4))
         return subjectsList
@@ -159,7 +176,7 @@ bot.onText(/\/keyboard/, msg => {
 //Отправка сервисных сообщений всем
 bot.onText(/\/smessage/, (msg) => {
   const chatId = msg.chat.id
-  if(chatId === 458784044){
+  if(chatId === 458784044 || chatId === 411038540){
     bot.sendMessage(chatId, "Напишите и отправьте сообщениие, оно будет разослано всем.\n Чтобы отменить рассылку отправьте «Отмена»");
     bot.once('message', (msg) => {
       if(msg.text.toLowerCase() =="отмена"){
@@ -324,7 +341,14 @@ bot.on('message', msg => {
   }
 })
 
-
+ontime({
+  cycle: ['weekday 09:00:00']
+  
+}, function(ot){
+  addSchedule()
+  ot.done();
+  return
+}),
 
 ontime({
   cycle: ['weekday 09:05:00', 'weekday 10:50:00', 'weekday 13:05:00', 'weekday 14:50:00', 'weekday 16:25:00', 'weekday 18:10:00','sat 09:05:00', 'sat 10:50:00', 'sat 13:05:00', 'sat 14:50:00', 'sat 16:25:00', 'sat 18:10:00']
@@ -362,8 +386,7 @@ function clear(){
 function getWeekday(){
   weekday = new Date().getDay()-1;
 }
-//getWeekday();
-//main();
+
 async function main(){
   let date = new Date();
   let time = date.getHours();
@@ -372,7 +395,7 @@ async function main(){
     10:2,
     13:3,
     14:4,
-    16:5,
+    17:5,
     18:6
   }
   console.log("\x1b[37m", date.toString());
@@ -385,7 +408,9 @@ async function main(){
 	});
   for (let i=0; i<data.active.length; i++) { 
     //Нужно проверить
-    if(!data.active[i].disciplines[weekday][timeConverter.time])continue
+    console.log(data.active[i].disciplines[weekday]);
+    console.log(timeConverter[time]);
+    if(data.active[i].disciplines[weekday][timeConverter[time]]==null)continue
     
     let login = data.active[i].login;
     let password = data.active[i].password;
