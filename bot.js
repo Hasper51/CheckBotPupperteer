@@ -10,8 +10,8 @@ const disciplines = require('./disciplines.json');
 const keyboard = require('./keyboard');
 const schedule = require('./parce')
 let weekday;
-//const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
-const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
+const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
+//const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
 function addSchedule(){
   data.active.forEach((elem, index) => {
     try{
@@ -44,8 +44,12 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
         person.chat_id = userId
         await register();
         console.log(person)
-        person.login = '';
-        person.password = '';
+        person = {
+          login: '',
+          password: '',
+          group: '',
+          chat_id: ''
+        }
         console.log("Завершено")
     }else{
         bot.sendMessage(msg.chat.id, "Сначала введите логин")
@@ -91,10 +95,10 @@ async function register(){
     await page.waitForSelector("#menu_li_6118")
     await page.click('#menu_li_6118')
     await page.waitForSelector('a.style_gr:nth-child(1)')
-    const group = await page.$eval('a.style_gr:nth-child(1) > b:nth-child(1)', el => el.innerText)
+    let group = await page.$eval('a.style_gr:nth-child(1) > b:nth-child(1)', el => el.innerText)
     await page.click('#menu_li_6119')
     await page.waitForSelector('.smalltab > thead:nth-child(1) > tr:nth-child(1)')
-    const sub = await page.evaluate(() => {
+    let sub = await page.evaluate(() => {
         let subjectsList = [];
         let totalSearchResults = document.querySelectorAll('.smalltab > thead:nth-child(1) > tr:nth-child(1) > th');
         totalSearchResults.forEach(i => {
@@ -138,7 +142,7 @@ async function register(){
     fs.writeFileSync("data.json", JSON.stringify(data))
     await schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', group)
     
-    bot.sendMessage(userId, "Принято! Ознакомиться с командами можно через меню.")
+    bot.sendMessage(userId, "Принято! Ознакомиться с командами можно через меню.\n Вызов клавиатуры командой /keyboard")
     console.log(userId+': Зарегистрировался')
   } catch (error) {
     console.log("Повторите попытку! Неверный логин или пароль.")
@@ -298,7 +302,7 @@ bot.on('message', msg => {
       })
       break
     case kb.home_2.updates:
-      bot.sendMessage(chatId,"https://telegra.ph/AutoCheckBot-Beta-20-04-07")
+      bot.sendMessage(chatId,"https://telegra.ph/AutoCheckBot-Beta-10-04-18")
       break
     case kb.home_2.manage:
       bot.sendMessage(chatId, "Выберите пункт меню ", {
@@ -408,8 +412,6 @@ async function main(){
 	});
   for (let i=0; i<data.active.length; i++) { 
     //Нужно проверить
-    console.log(data.active[i].disciplines[weekday]);
-    console.log(timeConverter[time]);
     if(data.active[i].disciplines[weekday][timeConverter[time]]==null)continue
     
     let login = data.active[i].login;

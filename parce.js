@@ -54,7 +54,7 @@ async function schedule(url, groupNumber) {
         }
         return data_mas
     });
-    console.log(result)
+    //console.log(result)
     data.active.forEach(elem => {
         if (elem.group==groupNumber){
             elem.disciplines=result
@@ -66,7 +66,7 @@ async function schedule(url, groupNumber) {
     
     await browser.close();
 
-    console.log('Time: ', (Date.now() - startTime) / 1000, 's');
+    console.log('Файл parce.js //// Time: ', (Date.now() - startTime) / 1000, 's');
 }
 
 //schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', 'ИКТ-113');
