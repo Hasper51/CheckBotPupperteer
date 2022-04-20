@@ -412,7 +412,7 @@ async function main(){
 	});
   for (let i=0; i<data.active.length; i++) { 
     //Нужно проверить
-    if(data.active[i].disciplines[weekday][timeConverter[time]]==null)continue
+    if(data.active[i].disciplines[weekday][timeConverter[time]]==null || data.active[i].disciplines[weekday][timeConverter[time]].status==false)continue
     
     let login = data.active[i].login;
     let password = data.active[i].password;
