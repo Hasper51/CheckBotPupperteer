@@ -4,7 +4,7 @@ const fs = require('fs')
 module.exports = schedule;
 async function schedule(url, groupNumber) {
     let startTime = Date.now();
-    const browser = await puppeteer.launch({ headless: true , defaultViewport: null});
+    const browser = await puppeteer.launch({ headless: true , defaultViewport: null, args: ['--no-sandbox']});
     const page = await browser.newPage();
     //await page.setUserAgent(userAgent.toString());
     await page.goto(url, { waitUntil: 'networkidle2' });
