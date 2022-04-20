@@ -399,7 +399,7 @@ async function main(){
   }
   console.log("\x1b[37m", date.toString());
   console.time('FirstWay');
-  const browser = await puppeteer.launch({headless:true})
+  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
   page.on('dialog', async dialog => {
@@ -467,7 +467,7 @@ async function secondary(){
   console.log("\x1b[37m", date.toString());
   console.time('FirstWay');
   
-  const browser = await puppeteer.launch({headless:true})
+  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/')
   page.on('dialog', async dialog => {
