@@ -2,7 +2,6 @@ const TelegramBot = require('node-telegram-bot-api');
 const puppeteer = require('puppeteer');
 const data = require('./data.json');
 const ontime = require('ontime');
-const CHAT_ID = require('./CHAT_ID.json')
 const Json = [];
 const fs = require('fs')
 const kb = require('./keyboard-buttons');
@@ -61,7 +60,7 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
 
 async function register(){
   console.log("register")
-  const browser = await puppeteer.launch({headless:true})
+  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
   const page = await browser.newPage();
   try{
         await page.goto('https://lk.sut.ru/cabinet/')
@@ -151,11 +150,7 @@ async function register(){
 
   await browser.close();
 }
-bot.onText(/\/activate/, async msga => {
-  CHAT_ID.push({first_name:msga.from.first_name,username:msga.from.username, chat_id:msga.from.id});
-  console.log(msga);
-  //await sendFunction();
-})
+
 bot.onText(/\/start/, msg => {
     const {id} = msg.chat;
     bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЗдесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`)
