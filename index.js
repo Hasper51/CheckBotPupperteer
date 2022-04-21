@@ -38,7 +38,7 @@ async function main(){
   date = new Date();
   console.log(date.toString());
   console.time('FirstWay');
-  const browser = await puppeteer.launch({headless:true})
+  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/')
   page.on('dialog', async dialog => {
@@ -92,7 +92,7 @@ async function secondary(){
   date = new Date();
   console.log(date.toString());
   console.time('FirstWay');
-  const browser = await puppeteer.launch({headless:true})
+  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/')
   page.on('dialog', async dialog => {
