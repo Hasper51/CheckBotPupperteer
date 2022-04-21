@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const data = require('./data.json');
+const data = require('./chat_id.json');
 const ontime = require('ontime');
 const Json = [];
 
@@ -28,12 +28,12 @@ ontime({
   ott.done();
   return
 })
-main()
+
 function clear(){
   Json.splice(0, Json.length)
   console.log('cleared')
 }
-
+main();
 async function main(){
   date = new Date();
   console.log(date.toString());
@@ -44,9 +44,9 @@ async function main(){
   page.on('dialog', async dialog => {
     await dialog.accept()
 	});
-  for (let i=0; i<data.length; i++) {
-    let login = data[i].login;
-    let password = data[i].password;
+  for (let i=0; i<data.active.length; i++) {
+    let login = data.active[i].login;
+    let password = data.active[i].password;
     await page.waitForSelector('#users')
     await page.type('#users', login)
     await page.type('#parole', password)
