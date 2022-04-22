@@ -12,6 +12,7 @@ const schedule = require('./parce')
 let weekday;
 //const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
 const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
+const url =  'https://7f0f-91-238-229-250.eu.ngrok.io'
 
 function addSchedule(){
   data.active.forEach((elem, index) => {
@@ -23,8 +24,9 @@ function addSchedule(){
   })
 }
 
-const bot = new TelegramBot(token, {polling: true});
-console.log(data.active)
+const bot = new TelegramBot(token, {webHook: {port: 3000}});
+bot.setWebHook(`${url}/bot${token}`);
+
 let person = {
     login: '',
     password: '',
