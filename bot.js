@@ -1,4 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
+const dotenv = require('dotenv');
+dotenv.config()
 const puppeteer = require('puppeteer');
 const data = require('./data.json');
 const ontime = require('ontime');
@@ -9,20 +11,16 @@ const disciplines = require('./disciplines.json');
 const keyboard = require('./keyboard');
 const schedule = require('./parce')
 let weekday;
-const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
+//const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
 //const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
-function addSchedule(){
-  data.active.forEach((elem, index) => {
-    try{
-      schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', elem.group)
-    }catch(e){
-      console.log("Не удалось загрузать расписание для: "+elem.group)
-    }
-  })
-}
+const bot = new TelegramBot(process.env.token, {
+  webHook: {
+    port: process.env.port
+  }
+});
+bot.setWebHook(`${process.env.url}/bot${process.env.token}`)
 
-const bot = new TelegramBot(token, {polling: true});
-console.log(data.active)
+
 let person = {
     login: '',
     password: '',
@@ -57,6 +55,15 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
     
 })
 
+function addSchedule(){
+  data.active.forEach((elem, index) => {
+    try{
+      schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', elem.group)
+    }catch(e){
+      console.log("Не удалось загрузать расписание для: "+elem.group)
+    }
+  })
+}
 
 async function register(){
   console.log("register")
