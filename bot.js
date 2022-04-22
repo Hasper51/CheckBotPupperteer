@@ -8,9 +8,11 @@ const kb = require('./keyboard-buttons');
 const disciplines = require('./disciplines.json');
 const keyboard = require('./keyboard');
 const schedule = require('./parce')
+
 let weekday;
-const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
-//const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
+//const token = '5129741970:AAHW4FjyT0I22ArMcaIZyMRgi_Tqx3oYeRc'
+const token = '1003173362:AAHwMBjqn1Wm_TOMbDzELobJ2pSPcPgZVGk'
+
 function addSchedule(){
   data.active.forEach((elem, index) => {
     try{

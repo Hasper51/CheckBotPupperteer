@@ -2,7 +2,7 @@
   "name": "checkbotpupperteer",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "bot.js",
   "scripts": {
     "dev": "nodemon bot.js",
     "start": "node bot.js"
@@ -11,7 +11,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "express": "^4.17.3",
     "fs": "0.0.1-security",
+    "https": "^1.0.0",
+    "ngrok": "^4.3.1",
     "node-telegram-bot-api": "^0.56.0",
     "nodemon": "^2.0.15",
     "ontime": "0.0.8",
