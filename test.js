@@ -65,15 +65,25 @@ async function run() {
       // console.log(results[0].active)
       
       
-    let a = 0
-    const res = await collection.find({active: true}).project({
+    // let a = 0
+    // const res = await collection.find({active: true}).project({
+    //     _id: 0,
+    //     login: 1,
+    //     password: 1,
+    //     chat_id: 1,
+    //     schedule: {$slice: [a,1]}
+    // }).toArray()
+    // console.log(res[7])
+
+    let remains_after_main = [ 878048633, 803368333, 411038540 ]
+    const res = await collection.find({active: true, chat_id:{$in: remains_after_main}}).project({
         _id: 0,
         login: 1,
         password: 1,
         chat_id: 1,
-        schedule: {$slice: [a,1]}
-    }).toArray()
-    console.log(res[7])
+        schedule: {$slice: [0,1]}
+      }).toArray()
+    console.log(res)
   }catch(err) {
       console.log(err);
       console.log("Ошибка подключения к БД");

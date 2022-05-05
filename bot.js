@@ -1,22 +1,16 @@
 const TelegramBot = require('node-telegram-bot-api');
-
 const dotenv = require('dotenv');
 dotenv.config()
 const MongoClient = require("mongodb").MongoClient;
 const mongoClient = new MongoClient(process.env.mongodb_url);
-const mongoose = require('mongoose');
 const puppeteer = require('puppeteer');
-const data = require('./data.json');
 const ontime = require('ontime');
-const Json = [];
-const fs = require('fs')
 const kb = require('./keyboard-buttons');
-const disciplines = require('./disciplines.json');
 const keyboard = require('./keyboard');
 const scheduleFunc = require('./parce');
-const keyboardButtons = require('./keyboard-buttons');
+const remains_after_main = [];
 let weekday;
-
+let repeat_function_mode = false;
 const bot = new TelegramBot(process.env.token, {
   polling: true
   // webHook: {
@@ -318,14 +312,27 @@ async function getDataForScriptMain(){
     await mongoClient.connect();
     const db = mongoClient.db("AutoCheckBotDatabase");
     const collection = db.collection("users");
-    const res = await collection.find({active: true}).project({
+    if(remains_after_main.length==0){
+      const res = await collection.find({active: true}).project({
         _id: 0,
         login: 1,
         password: 1,
         chat_id: 1,
         schedule: {$slice: [weekday,1]}
-    }).toArray()
-    return res
+      }).toArray()
+      return res
+    }else{
+      const res = await collection.find({active: true, chat_id:{$in: remains_after_main}}).project({
+        _id: 0,
+        login: 1,
+        password: 1,
+        chat_id: 1,
+        schedule: {$slice: [weekday,1]}
+      }).toArray()
+      return res
+    }
+    
+    
   } catch (error) {
     console.log(error.message)
   }finally {
@@ -426,7 +433,6 @@ bot.on('callback_query', async query => {
         }
       })
     default:
-      console.log("right")
       try {
         data_l = JSON.parse(query.data)
       }catch(e) {
@@ -505,11 +511,12 @@ bot.on('message', async msg => {
       break
   }
 })
-
+getWeekday();
 ontime({
   cycle: ['weekday 08:00:00', 'sat 08:00:00']
   
 }, function(ot){
+  getWeekday();
   updateSchedule()
   ot.done();
   return
@@ -519,7 +526,7 @@ ontime({
   cycle: ['weekday 09:05:00', 'weekday 10:50:00', 'weekday 13:05:00', 'weekday 14:50:00', 'weekday 16:25:00', 'weekday 18:10:00','sat 09:05:00', 'sat 10:50:00', 'sat 13:05:00', 'sat 14:50:00', 'sat 16:25:00', 'sat 18:10:00']
   
 }, function(ot){
-  getWeekday();
+  repeat_function_mode=false
   main();
   ot.done();
   return
@@ -528,7 +535,8 @@ ontime({
   cycle: ['weekday 09:45:00', 'weekday 11:30:00', 'weekday 13:50:00', 'weekday 15:35:00', 'weekday 17:00:00', 'weekday 18:55:00', 'sat 09:45:00', 'sat 11:30:00', 'sat 13:50:00', 'sat 15:35:00', 'sat 17:00:00', 'sat 18:55:00']
   
 }, function(oto){
-  secondary();
+  repeat_function_mode=true
+  main();
   oto.done();
   return
 }),
@@ -536,14 +544,15 @@ ontime({
   cycle: ['weekday 10:30:00', 'weekday 12:15:00', 'weekday 14:30:00', 'weekday 16:15:00', 'weekday 17:55:00', 'weekday 19:25:00','sat 10:30:00', 'sat 12:15:00', 'sat 14:30:00', 'sat 16:15:00', 'sat 17:55:00', 'sat 19:25:00']
   
 }, async function(ott){
-  await secondary()
+  repeat_function_mode=true
+  await main()
   clear()
   ott.done();
   return
 })
 
 function clear(){
-  Json.splice(0, Json.length)
+  remains_after_main.splice(0, remains_after_main.length)
   console.log('cleared')
   
 }
@@ -552,10 +561,13 @@ function getWeekday(){
   weekday = new Date().getDay()-1;
 }
 // updateSchedule()
-getWeekday()
-main()
+// getWeekday()
+// main()
+
 async function main(){
+try {
   let date = new Date();
+  
   let time = date.getHours();
   let timeConverter = {
     9:0,
@@ -565,6 +577,7 @@ async function main(){
     17:4,
     18:5
   }
+  
   console.log("\x1b[37m", date.toString());
   console.time('FirstWay');
   const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
@@ -574,12 +587,12 @@ async function main(){
     await dialog.accept()
 	});
   let res = await getDataForScriptMain()
-  
+  console.log(res)
   for (let i=0; i<res.length; i++) { 
-
-    if(res[i].schedule[0][timeConverter[time]]==null || res[i].schedule[0][timeConverter[time]].status==false)
-    continue
-    
+    if(!repeat_function_mode){
+      if(res[i].schedule[0][timeConverter[time]]==null || res[i].schedule[0][timeConverter[time]].status==false)
+      continue
+    }
     let login = res[i].login;
     let password = res[i].password;
     let chat_id = res[i].chat_id;
@@ -592,94 +605,32 @@ async function main(){
       await page.click('#heading1')
       await page.waitForSelector('#menu_li_6118')
       await page.click('#menu_li_6118')
-    
+      try{
+        const xp = '//span/a[text()="Начать занятие"]';
+        const el = await page.waitForXPath(xp, {timeout: 500});
+        await el.click();
+        console.log("\x1b[32m", login+": НАЖАТО!")
+        bot.sendMessage(chat_id, "Занятие началось в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
+        if(repeat_function_mode) remains_after_main.splice(i,1)
+      }catch(e){
+        console.log("\x1b[31m", login+": Link not found")
+        //bot.sendMessage(chat_id, "Кнопка начать занятие не найдена в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
+        if(!repeat_function_mode) remains_after_main.push(chat_id)
+      }
     }catch(error){
       console.log("\x1b[33m", error)
     }  
     
-    //вариант 1 проверено
-    try{
-      const xp = '//span/a[text()="Начать занятие"]';
-      const el = await page.waitForXPath(xp, {timeout: 500});
-      await el.click();
-      console.log("\x1b[32m", login+": НАЖАТО!")
-      bot.sendMessage(chat_id, "Занятие началось в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
-    }catch(e){
-      console.log("\x1b[31m", login+": Link not found")
-      //bot.sendMessage(chat_id, "Кнопка начать занятие не найдена в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
-      Json.push({chat_id:chat_id});
-      
-    }
-    
-    
-    //вариант 2 нужно проверить
-    
-    // const linkHandlers = await page.$x("//*[@id='rightpanel']/div/table/tbody/tr[2]/td[2]/b/text()='Теория информации, данные, знания'");
-    // console.log(linkHandlers)
-    
-    // if (linkHandlers.length > 0) {
-    //   await linkHandlers[0].click();
-    // } else {
-    //   console.log(login+": Link not found")
-    // }
-    
     await page.click('#logButton_do_enter');
     
   }
   await browser.close();
   console.log("\x1b[37m")
   console.timeEnd('FirstWay');
+  console.log(remains_after_main)
+} catch (error) {
+    console.log("\x1b[33m", error)
+}
 }
 
-async function secondary(){
-  let date = new Date();
-  console.log("\x1b[37m", date.toString());
-  console.time('FirstWay');
-  
-  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
-  const page = await browser.newPage();
-  await page.goto('https://lk.sut.ru/cabinet/')
-  page.on('dialog', async dialog => {
-    await dialog.accept()
-	});
-  for (let i=0; i<Json.length; i++) {
-    let login = Json[i].login;
-    let password = Json[i].password;
-    let chat_id = Json[i].chat_id;
-    try{
-      await page.waitForSelector('#users')
-      await page.type('#users', login)
-      await page.type('#parole', password)
-      await page.click('#logButton')
-      await page.waitForSelector('#heading1')
-      await page.click('#heading1')
-      await page.waitForSelector('#menu_li_6118')
-      await page.click('#menu_li_6118')
-    // await page.waitForSelector('#bak').catch(error =>{
-    //   console.log(error)
-      
-    // })
-    }catch(error){
-      console.log("\x1b[33m", error)
-    }
-    //вариант 1 проверено
-    try{
-      const xp = '//span/a[text()="Начать занятие"]';
-      const el = await page.waitForXPath(xp, {timeout: 400});
-      await el.click();
-      console.log("\x1b[32m", login+": НАЖАТО!")
-      bot.sendMessage(chat_id, "Занятие началось в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
-      Json.splice(i,1)
-      
-    }catch(e){
-      console.log("\x1b[31m", login+": Link not found")
-      //bot.sendMessage(chat_id, "Кнопка начать занятие не найдена в "+date.toLocaleTimeString('ru-RU', {hour12:false}))
-    }
-    
-    await page.click('#logButton_do_enter');
-    
-  }
-  await browser.close();
-  console.log("\x1b[37m")
-  console.timeEnd('FirstWay');
-}
+
