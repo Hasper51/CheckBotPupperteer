@@ -13,11 +13,9 @@ const schedule = require('./parce')
 let weekday;
 
 const bot = new TelegramBot(process.env.token, {
-  webHook: {
-    port: process.env.port
-  }
+  polling:true
 });
-bot.setWebHook(`${process.env.url}/bot${process.env.token}`)
+//bot.setWebHook(`${process.env.url}/bot${process.env.token}`)
 
 
 let person = {
@@ -389,6 +387,7 @@ function clear(){
 function getWeekday(){
   weekday = new Date().getDay()-1;
 }
+getWeekday()
 main()
 async function main(){
   let date = new Date();
@@ -396,7 +395,7 @@ async function main(){
   let timeConverter = {
     9:1,
     10:2,
-    13:3,
+    20:3,
     14:4,
     17:5,
     18:6
@@ -411,6 +410,7 @@ async function main(){
 	});
   for (let i=0; i<data.active.length; i++) { 
     //Нужно проверить
+    console.log(data.active[i].disciplines[weekday][timeConverter[time]])
     if(data.active[i].disciplines[weekday][timeConverter[time]]==null || data.active[i].disciplines[weekday][timeConverter[time]].status==false)continue
     
     let login = data.active[i].login;
