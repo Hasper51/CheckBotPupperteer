@@ -343,7 +343,7 @@ bot.on('message', msg => {
 })
 
 ontime({
-  cycle: ['weekday 09:00:00']
+  cycle: ['weekday 08:00:00']
   
 }, function(ot){
   addSchedule()
@@ -395,7 +395,7 @@ async function main(){
   let timeConverter = {
     9:1,
     10:2,
-    20:3,
+    13:3,
     14:4,
     17:5,
     18:6
@@ -410,7 +410,6 @@ async function main(){
 	});
   for (let i=0; i<data.active.length; i++) { 
     //Нужно проверить
-    console.log(data.active[i].disciplines[weekday][timeConverter[time]])
     if(data.active[i].disciplines[weekday][timeConverter[time]]==null || data.active[i].disciplines[weekday][timeConverter[time]].status==false)continue
     
     let login = data.active[i].login;
