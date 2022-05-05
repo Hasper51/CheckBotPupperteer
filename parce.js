@@ -27,21 +27,26 @@ async function schedule(url, groupNumber) {
         
         for (let i = 1; i <= 6; i++) {
             
-            data_obj = {}
+            data_obj = []
             for (let j = 0; j < subjects_length-1; j++) {
+                
                 let count = document.querySelectorAll(".vt283")[j].textContent
+                if(count=="ФЗ") {
+                    continue
+                }
                 let obj = document.querySelectorAll(`.rasp-day${i}`)[j]
                 //let status = obj.querySelector('.vt240')==null  ? false : true
                 if(obj.querySelector('.vt240')!==null){
                     let type = obj.querySelector('.vt243').textContent.replace(/\t|\n|[0-9]|[()]/g, '')
                     if(type=='Лабораторная работа')type = 'Практические занятия'
                     let title = obj.querySelector('.vt240').textContent.replace(/\t|\n|[0-9]|[()]/g, '').trimEnd()
-                    data_obj[`${count}`] = {
+                    data_obj.push({
+                        order: count,
                         title: title,
                         type: type,
                         status: true
-                    }
-                }else data_obj[`${count}`] = null
+                    })
+                }else data_obj.push(null)
                 //data_obj.type = obj.querySelector('.vt240')==null  ? '' : obj.querySelector('.vt240').textContent.replace(/\t|\n|[0-9]|[()]/g, '').trimEnd()
                 
                 //data_obj.type = obj.querySelector('.vt243').innerText;
@@ -55,18 +60,19 @@ async function schedule(url, groupNumber) {
         return data_mas
     });
     //console.log(result)
-    data.active.forEach(elem => {
-        if (elem.group==groupNumber){
-            elem.disciplines=result
-        }
-    })
-    fs.writeFileSync("data.json", JSON.stringify(data))
+    // data.active.forEach(elem => {
+    //     if (elem.group==groupNumber){
+    //         elem.disciplines=result
+    //     }
+    // })
+    // fs.writeFileSync("data.json", JSON.stringify(data))
     
     
     
     await browser.close();
 
     console.log('Файл parce.js //// Time: ', (Date.now() - startTime) / 1000, 's');
+    return result
 }
 
 //schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', 'ИКТ-113');
