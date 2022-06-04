@@ -9,7 +9,7 @@ const fs = require('fs')
 const kb = require('./keyboard-buttons');
 const disciplines = require('./disciplines.json');
 const keyboard = require('./keyboard');
-const schedule = require('./parce')
+//const schedule = require('./parce')
 let weekday;
 
 const bot = new TelegramBot(process.env.token, {
@@ -52,15 +52,16 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
     
 })
 
-function addSchedule(){
-  data.active.forEach((elem, index) => {
-    try{
-      schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', elem.group)
-    }catch(e){
-      console.log("Не удалось загрузать расписание для: "+elem.group)
-    }
-  })
-}
+// function addSchedule(){
+//   data.active.forEach(async (elem, index) => {
+//     try{
+//       await schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', elem.group)
+//       console.log("Загружено расписание для группы: "+ elem.group)
+//     }catch(e){
+//       console.log("Не удалось загрузать расписание для: "+elem.group)
+//     }
+//   })
+// }
 
 async function register(){
   console.log("register")
@@ -345,9 +346,12 @@ bot.on('message', msg => {
 ontime({
   cycle: ['weekday 08:00:00']
   
-}, function(ot){
-  addSchedule()
-  ot.done();
+}, async function(otb){
+    for (let y=0;y<data.active.length;y++){
+        await schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', data.active[y].group)
+    }
+  
+  otb.done();
   return
 }),
 
@@ -383,12 +387,84 @@ function clear(){
   console.log('cleared')
   
 }
+async function schedule(url, groupNumber) {
+    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox'],executablePath: '/usr/bin/chromium-browser'});
+    try{
+    console.log("-------------------ЗАПУЩЕН ПАРСЕР РАСПИСАНИЯ-----------------------------")
+    let startTime = Date.now();
+   
+    const page = await browser.newPage();
+    //await page.setUserAgent(userAgent.toString());
+    await page.goto(url);
 
+    
+    //await page.evaluate(val => document.querySelector('input[name="field-keywords"]').value = val, searchTerm);
+
+    let link = await page.$(`a[data-nm='${groupNumber}']`);
+
+    //console.log("link: "+link)
+    await link.click();
+    //await page.waitForSelector('#rasp-prev')
+    await page.waitForNavigation({waitUntil: 'networkidle2'});
+    
+    
+    const result = await page.evaluate(() => {
+        let data_mas = [];
+        
+        let subjects_length = document.querySelectorAll('.vt244').length;
+        
+        for (let i = 1; i <= 6; i++) {
+            
+            data_obj = {}
+            for (let j = 0; j < subjects_length-1; j++) {
+                let count = document.querySelectorAll(".vt283")[j].textContent
+                let obj = document.querySelectorAll(`.rasp-day${i}`)[j]
+                //let status = obj.querySelector('.vt240')==null  ? false : true
+                if(obj.querySelector('.vt240')!==null){
+                    let type = obj.querySelector('.vt243').textContent.replace(/\t|\n|[0-9]|[()]/g, '')
+                    if(type=='Лабораторная работа')type = 'Практические занятия'
+                    let title = obj.querySelector('.vt240').textContent.replace(/\t|\n|[0-9]|[()]/g, '').trimEnd()
+                    data_obj[`${count}`] = {
+                        title: title,
+                        type: type,
+                        status: true
+                    }
+                }else data_obj[`${count}`] = null
+                //data_obj.type = obj.querySelector('.vt240')==null  ? '' : obj.querySelector('.vt240').textContent.replace(/\t|\n|[0-9]|[()]/g, '').trimEnd()
+                
+                //data_obj.type = obj.querySelector('.vt243').innerText;
+                
+                
+                
+            }
+            data_mas.push(data_obj)
+            
+        }
+        return data_mas
+    });
+    
+    //console.log(result)
+    data.active.forEach(elem => {
+        if (elem.group==groupNumber){
+            elem.disciplines=result
+        }
+    })
+    fs.writeFileSync("data.json", JSON.stringify(data))
+    console.log("Загружено расписание для группы: "+ groupNumber)
+    console.log('Файл parce.js //// Time: ', (Date.now() - startTime) / 1000, 's');
+    }catch(e){
+        console.log("Не удалось загрузать расписание для: "+groupNumber)
+        console.log(e)
+    }finally{
+        await browser.close();
+    }
+    
+}
 function getWeekday(){
   weekday = new Date().getDay()-1;
 }
-getWeekday()
-main()
+// getWeekday()
+// main()
 async function main(){
   let date = new Date();
   let time = date.getHours();
@@ -428,6 +504,7 @@ async function main(){
     //   console.log(error)
     // })
     }catch(error){
+        console.log("\x1b[37m", date.toString());
       console.log("\x1b[33m", error)
     }  
     
@@ -470,7 +547,7 @@ async function secondary(){
   console.log("\x1b[37m", date.toString());
   console.time('FirstWay');
   
-  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
+  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox'],executablePath: '/usr/bin/chromium-browser'})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/')
   page.on('dialog', async dialog => {
@@ -494,6 +571,7 @@ async function secondary(){
       
     // })
     }catch(error){
+        console.log("\x1b[37m", date.toString());
       console.log("\x1b[33m", error)
     }
     //вариант 1 проверено

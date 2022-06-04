@@ -3,8 +3,10 @@ const data = require('./data.json');
 const fs = require('fs')
 module.exports = schedule;
 async function schedule(url, groupNumber) {
+    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox'],executablePath: '/usr/bin/chromium-browser'});
+    try{
     let startTime = Date.now();
-    const browser = await puppeteer.launch({ headless: true , defaultViewport: null, args: ['--no-sandbox']});
+   
     const page = await browser.newPage();
     //await page.setUserAgent(userAgent.toString());
     await page.goto(url, { waitUntil: 'networkidle2' });
@@ -54,6 +56,7 @@ async function schedule(url, groupNumber) {
         }
         return data_mas
     });
+    
     //console.log(result)
     data.active.forEach(elem => {
         if (elem.group==groupNumber){
@@ -62,11 +65,13 @@ async function schedule(url, groupNumber) {
     })
     fs.writeFileSync("data.json", JSON.stringify(data))
     
-    
-    
-    await browser.close();
-
     console.log('Файл parce.js //// Time: ', (Date.now() - startTime) / 1000, 's');
+    }catch(e){
+        console.log(e)
+    }finally{
+        await browser.close();
+    }
+    
 }
 
-//schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', 'ИКТ-113');
+//schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', 'ИСТ-032');
