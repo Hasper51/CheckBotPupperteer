@@ -7,7 +7,6 @@ const puppeteer = require('puppeteer');
 const ontime = require('ontime');
 const kb = require('./keyboard-buttons');
 const keyboard = require('./keyboard');
-const scheduleFunc = require('./parce');
 const remains_after_main = [];
 let weekday;
 let repeat_function_mode = false;
@@ -41,7 +40,7 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
         bot.sendMessage(msg.chat.id, "Идет проверка...")
         person.password = match
         person.chat_id = userId
-        await register(msg.message_id);
+        await register();
         console.log(person)
         person = {
           login: '',
@@ -59,7 +58,7 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
 })
 
 
-async function register(message_id){
+async function register(){
   console.log("register")
   const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
   const page = await browser.newPage();
@@ -104,14 +103,7 @@ async function register(message_id){
         totalSearchResults.forEach((elem) => {
           let title = elem.textContent
           if(title=='Военная подготовка' || title=='Элективные дисциплины по физической культуре и спорту'){
-              subjectsList.push(
-                  {
-                      title: title,
-                      type: "Практические занятия",
-                      status: true,
-                      discipline_num: ''
-                  }
-              )
+              return
           }else{
               subjectsList.push(
                   {
@@ -318,6 +310,7 @@ async function getDataForScriptMain(){
         login: 1,
         password: 1,
         chat_id: 1,
+        disciplines: 1,
         schedule: {$slice: [weekday,1]}
       }).toArray()
       return res
@@ -374,7 +367,58 @@ async function editDisciplinesMenu(chatId){
   
   return {Text, keyBoardData}
 }
-
+async function scheduleFunc(url, groupNumber) {
+  try{
+    let startTime = Date.now();
+    await mongoClient.connect();
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+    const browser = await puppeteer.launch({ headless: true , defaultViewport: null, args: ['--no-sandbox']});
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    let link = await page.$(`a[data-nm='${groupNumber}']`);
+    await link.click();
+    await page.waitForNavigation({waitUntil: 'networkidle2'});
+    const result = await page.evaluate(() => {
+        let data_mas = [];
+        let subjects_length = document.querySelectorAll('.vt244').length;
+        
+        for (let i = 1; i <= 6; i++) {
+            
+            data_obj = []
+            for (let j = 0; j < subjects_length-1; j++) {
+                
+                let count = document.querySelectorAll(".vt283")[j].textContent
+                if(count=="ФЗ")continue
+                
+                let obj = document.querySelectorAll(`.rasp-day${i}`)[j]
+                //let status = obj.querySelector('.vt240')==null  ? false : true
+                if(obj.querySelector('.vt240')!==null){
+                    let type = obj.querySelector('.vt243').textContent.replace(/\t|\n|[0-9]|[()]/g, '')
+                    if(type=='Лабораторная работа')type = 'Практические занятия'
+                    let title = obj.querySelector('.vt240').textContent.replace(/\t|\n|[0-9]|[()]/g, '').trimEnd()
+                    data_obj.push({
+                        title: title,
+                        type: type,
+                    })
+                }else data_obj.push(null)
+              
+            }
+            data_mas.push(data_obj)
+            
+        }
+        return data_mas
+    });
+    //console.log(result)
+    
+    await browser.close();
+    console.log('Function scheduleFunc Time: ', (Date.now() - startTime) / 1000, 's');
+    return result
+  }catch(e) {
+    console.log(e)
+  }
+  
+}
 
 
 bot.onText(/\/keyboard/, async msg => {
@@ -432,13 +476,15 @@ bot.on('callback_query', async query => {
           ]]
         }
       })
+      break
     default:
       try {
         data_l = JSON.parse(query.data)
       }catch(e) {
-        throw new Error(e.message)
+        console.log(e)
       }
         
+      
       let {discipline_num, status} = data_l;
       await updateDisciplinesStatus(chat.id, discipline_num, !status)
       let {Text, keyBoardData} = await editDisciplinesMenu(chat.id)
@@ -448,7 +494,7 @@ bot.on('callback_query', async query => {
         parse_mode: "HTML",
         reply_markup:  {inline_keyboard:  keyBoardData} 
       })
-      
+      break
 
   }
   
@@ -559,9 +605,10 @@ function clear(){
 
 function getWeekday(){
   weekday = new Date().getDay()-1;
+  
 }
 // updateSchedule()
-// getWeekday()
+getWeekday()
 // main()
 
 async function main(){
@@ -579,7 +626,7 @@ try {
   }
   
   console.log("\x1b[37m", date.toString());
-  console.time('FirstWay');
+  console.time('Function MAIN');
   const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
@@ -588,10 +635,25 @@ try {
 	});
   let res = await getDataForScriptMain()
   console.log(res)
+ 
   for (let i=0; i<res.length; i++) { 
     if(!repeat_function_mode){
-      if(res[i].schedule[0][timeConverter[time]]==null || res[i].schedule[0][timeConverter[time]].status==false)
-      continue
+      let current_discipline = res[i].schedule[0][timeConverter[time]]
+        
+      if(current_discipline==null)continue
+      else{
+          let discipline_index = res[i].disciplines.findIndex(function(item, index){
+              
+              if(item.title == current_discipline.title){
+              if(item.type == current_discipline.type)
+              
+                  return index
+              }
+          })
+          
+          if(res[i].disciplines[discipline_index]==false)continue
+      }
+      
     }
     let login = res[i].login;
     let password = res[i].password;
@@ -626,7 +688,7 @@ try {
   }
   await browser.close();
   console.log("\x1b[37m")
-  console.timeEnd('FirstWay');
+  console.timeEnd('Function MAIN');
   console.log(remains_after_main)
 } catch (error) {
     console.log("\x1b[33m", error)
