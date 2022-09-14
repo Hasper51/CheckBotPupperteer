@@ -154,6 +154,113 @@ async function register(){
 
   await browser.close();
 }
+
+//updateDisciplines()
+async function updateDisciplines(){
+  console.log("update Disciplines")
+  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
+  const page = await browser.newPage();
+  try{
+        await page.goto('https://lk.sut.ru/cabinet/')
+  } catch (error){
+        console.error(error)
+        console.log("FAILED. Сайт долго отвечат на запрос.")
+        await browser.close();
+        return
+  }
+  
+  page.on('dialog', async dialog => {
+    await dialog.accept()
+	});
+  for (let i=0; i<data.active.length; i++) { 
+    //Нужно проверить
+    //if(data.active[i].disciplines[weekday][timeConverter[time]]==null || data.active[i].disciplines[weekday][timeConverter[time]].status==false)continue
+    
+    let login = data.active[i].login;
+    let password = data.active[i].password;
+    let chat_id = data.active[i].chat_id;
+    try {
+      await page.waitForSelector('#users')
+      await page.type('#users', login)
+      await page.type('#parole', password)
+      await page.click('#logButton')
+      await page.waitForSelector("#logo")
+      await page.click("#heading1 > h5:nth-child(1) > div:nth-child(1) > font:nth-child(2) > nobr:nth-child(1)")
+      await page.waitForSelector("#menu_li_6118")
+      await page.click('#menu_li_6118')
+      await page.waitForSelector('a.style_gr:nth-child(1)')
+      let group = await page.$eval('a.style_gr:nth-child(1) > b:nth-child(1)', el => el.innerText)
+      await page.click('#menu_li_6119')
+      await page.waitForSelector('.smalltab > thead:nth-child(1) > tr:nth-child(1)')
+      let sub = await page.evaluate(() => {
+          let subjectsList = [];
+          let totalSearchResults = document.querySelectorAll('.smalltab > thead:nth-child(1) > tr:nth-child(1) > th');
+          totalSearchResults.forEach(i => {
+            let title = i.textContent
+            if(title=='Военная подготовка' || title=='Элективные дисциплины по физической культуре и спорту'){
+                subjectsList.push(
+                    {
+                        title: title,
+                        type: "Практические занятия",
+                        status: true
+                    }
+                )
+            }else{
+                subjectsList.push(
+                    {
+                    title: title,
+                    type: "Лекция",
+                    status: true
+                    }, 
+                    {
+                    title: title,
+                    type: "Практические занятия",
+                    status: true
+                    }
+                )
+            }
+        });
+
+          subjectsList = subjectsList.slice((4))
+          return subjectsList
+      })
+      
+      disciplines.forEach(item => {
+        if(item.chat_id==chat_id){
+          delete item.disciplines  
+          item['disciplines'] = sub
+        }
+      })
+      
+      
+      
+      
+      
+      fs.writeFileSync("disciplines.json", JSON.stringify(disciplines))
+
+      
+      
+      
+      
+      console.log(login+': Disciplines Updated')
+    
+    }catch(error){
+      console.log("\x1b[33m", error)
+    }  
+    
+    //вариант 1 проверено
+    
+    
+    await page.click('#logButton_do_enter');
+    
+  }
+  
+  
+
+  await browser.close();
+}
+
+
 bot.onText(/\/start/, msg => {
     const {id} = msg.chat;
     bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЗдесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`)
@@ -387,8 +494,8 @@ function clear(){
 function getWeekday(){
   weekday = new Date().getDay()-1;
 }
-getWeekday()
-main()
+//getWeekday()
+//main()
 async function main(){
   let date = new Date();
   let time = date.getHours();
