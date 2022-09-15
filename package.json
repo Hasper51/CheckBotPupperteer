@@ -15,7 +15,7 @@
     "dotenv": "^16.0.0",
     "fs": "0.0.1-security",
     "node-telegram-bot-api": "^0.56.0",
-    "nodemon": "^2.0.15",
+    "nodemon": "^2.0.19",
     "ontime": "0.0.8",
     "puppeteer": "^13.5.0"
   }
