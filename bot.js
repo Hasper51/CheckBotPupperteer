@@ -451,7 +451,7 @@ bot.on('message', msg => {
 })
 
 ontime({
-  cycle: ['weekday 08:00:00']
+  cycle: ['monday 08:00:00']
   
 }, async function(otb){
     for (let y=0;y<data.active.length;y++){
@@ -560,7 +560,7 @@ async function schedule(url, groupNumber) {
     console.log("Загружено расписание для группы: "+ groupNumber)
     console.log('Файл parce.js //// Time: ', (Date.now() - startTime) / 1000, 's');
     }catch(e){
-        console.log("Не удалось загрузать расписание для: "+groupNumber)
+        console.log("Не удалось загрузить расписание для: "+groupNumber)
         console.log(e)
     }finally{
         await browser.close();
