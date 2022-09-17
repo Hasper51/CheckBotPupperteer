@@ -132,10 +132,6 @@ async function register(){
     person.disciplines = sub
     person.group=group
 
-    
-    
-    
-    
     await browser.close();
     
   } catch (error) {
@@ -180,6 +176,118 @@ async function switchScript(chat_id) {
       await mongoClient.close();
   }
 }
+
+
+async function updateDisciplines(){
+  try{ 
+    await mongoClient.connect();
+    console.log("Updating disciplines")
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+    let user_data = await collection.aggregate([
+      {
+        $group: {_id: "$group", login: {$first: '$login'}, password: {$first: '$password'}}
+      }
+    ]).toArray()
+    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
+    const page = await browser.newPage();
+    try{
+          await page.goto('https://lk.sut.ru/cabinet/')
+    } catch (error){
+          console.error(error)
+          console.log("FAILED. Сайт долго отвечат на запрос.")
+          await browser.close();
+          return
+    }
+    
+    page.on('dialog', async dialog => {
+      await dialog.accept()
+    });
+    
+    for (let i = 0; i < user_data.length; i++){
+      //Нужно проверить
+      //if(data.active[i].disciplines[weekday][timeConverter[time]]==null || data.active[i].disciplines[weekday][timeConverter[time]].status==false)continue
+      let group = user_data[i]._id
+      let login = user_data[i].login;
+      let password = user_data[i].password;
+      
+      try {
+        await page.waitForSelector('#users')
+        await page.type('#users', login)
+        await page.type('#parole', password)
+        await page.click('#logButton')
+        await page.waitForSelector('#heading1', {timeout:3000})
+        await page.waitForSelector("#logo")
+        await page.click("#heading1 > h5:nth-child(1) > div:nth-child(1) > font:nth-child(2) > nobr:nth-child(1)")
+        await page.waitForSelector("#menu_li_6118")
+        await page.click('#menu_li_6118')
+        await page.waitForSelector('a.style_gr:nth-child(1)')
+        //let group = await page.$eval('a.style_gr:nth-child(1) > b:nth-child(1)', el => el.innerText)
+        await page.click('#menu_li_6119')
+        await page.waitForSelector('.smalltab > thead:nth-child(1) > tr:nth-child(1)')
+        let sub = await page.evaluate(() => {
+          let subjectsList = [];
+          let totalSearchResults = document.querySelectorAll('.smalltab > thead:nth-child(1) > tr:nth-child(1) > th');
+          totalSearchResults.forEach((elem) => {
+            let title = elem.textContent
+            if(title=='Военная подготовка' || title=='Элективные дисциплины по физической культуре и спорту'){
+                return
+            }else{
+                subjectsList.push(
+                    {
+                    title: title,
+                    type: "Лекция",
+                    status: true,
+                    discipline_num: ''
+                    }, 
+                    {
+                    title: title,
+                    type: "Практические занятия",
+                    status: true,
+                    discipline_num: ''
+                    }
+                )
+            }
+          });
+
+          subjectsList = subjectsList.slice((4))
+          subjectsList.forEach((elem, index) => {
+            elem.discipline_num = index
+          })
+          return subjectsList
+      })
+      
+      try {
+        await collection.updateMany(
+          {group: group,},
+          {
+            $set: {
+              'disciplines': sub
+              
+              }
+            
+          }
+        )
+      } catch (error) {
+        console.log(error.message)
+      }  
+        
+      
+      
+      }catch(error){
+        console.log("\x1b[33m", error)
+      }  
+      await page.click('#logButton_do_enter');
+    }
+    await browser.close();
+    console.log('Disciplines Updated')
+  }catch (e) {
+    console.log(e.message)
+  }finally{
+    await mongoClient.close();
+  }
+}
+
 async function addUser(){
     await mongoClient.connect();
     const db = mongoClient.db("AutoCheckBotDatabase");
@@ -243,6 +351,7 @@ async function updateSchedule(){
       }
       
     }
+    console.log("Schedule updated")
   }catch (e) {
     console.log(e.message)
   }finally{
@@ -341,9 +450,9 @@ async function editDisciplinesMenu(chatId){
   let Text = ``
   let keyBoardData = [];
   let disciplinesLength = res.length
-  for (let j = 0; j < Math.floor(disciplinesLength/3);j++){
+  for (let j = 0; j < Math.ceil(disciplinesLength/3);j++){
     let row = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       Text+=`${counter+1}`+'. '
       Text+=`<b>${res[counter].title}</b>`+"\n"
       
@@ -369,10 +478,6 @@ async function editDisciplinesMenu(chatId){
 }
 async function scheduleFunc(url, groupNumber) {
   try{
-    let startTime = Date.now();
-    await mongoClient.connect();
-    const db = mongoClient.db("AutoCheckBotDatabase");
-    const collection = db.collection("users");
     const browser = await puppeteer.launch({ headless: true , defaultViewport: null, args: ['--no-sandbox']});
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2' });
@@ -412,7 +517,7 @@ async function scheduleFunc(url, groupNumber) {
     //console.log(result)
     
     await browser.close();
-    console.log('Function scheduleFunc Time: ', (Date.now() - startTime) / 1000, 's');
+    console.log('Получено расписание группы: '+ groupNumber);
     return result
   }catch(e) {
     console.log(e)
@@ -607,10 +712,10 @@ function getWeekday(){
   weekday = new Date().getDay()-1;
   
 }
-// updateSchedule()
-getWeekday()
-// main()
 
+
+
+main()
 async function main(){
 try {
   let date = new Date();
@@ -634,7 +739,7 @@ try {
     await dialog.accept()
 	});
   let res = await getDataForScriptMain()
-  console.log(res)
+
  
   for (let i=0; i<res.length; i++) { 
     if(!repeat_function_mode){
