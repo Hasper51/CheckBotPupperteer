@@ -449,7 +449,14 @@ bot.on('message', msg => {
       break
   }
 })
-
+startProcess()
+async function startProcess(){
+  for (let y=0;y<data.active.length;y++){
+    await schedule('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', data.active[y].group)
+  }
+  await getWeekday();
+  await main();
+}
 ontime({
   cycle: ['monday 08:00:00']
   
