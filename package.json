@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@qiwi/bill-payments-node-js-sdk": "^3.2.1",
     "curl": "^0.1.4",
     "dotenv": "^16.0.0",
     "fs": "0.0.1-security",

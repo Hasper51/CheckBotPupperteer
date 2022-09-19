@@ -9,8 +9,8 @@ module.exports = {
     ...add_points
   }, 
   manage: {
-    settings: 'Редактировать дисциплины'
-    
+    settings: 'Редактировать дисциплины',
+    subscription: 'Подписка'
   },
   back: 'Назад',
 

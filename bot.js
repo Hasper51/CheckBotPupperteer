@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const dotenv = require('dotenv');
 dotenv.config()
+const qiwiApi = new QiwiBillPaymentsAPI(process.env.SECRET_KEY);
 const MongoClient = require("mongodb").MongoClient;
 const mongoClient = new MongoClient(process.env.mongodb_url);
 const puppeteer = require('puppeteer');
@@ -442,8 +443,10 @@ async function getDataForScriptMain(){
   }
 }
 async function editDisciplinesMenu(chatId){
-  
+try{  
   let res = await getDisciplines(chatId)
+  //console.log(res)
+  
   let status_enabled = 'Включено ✅'
   let status_disabled = 'Отключено ❌'
   let counter = 0
@@ -475,6 +478,9 @@ async function editDisciplinesMenu(chatId){
   }
   
   return {Text, keyBoardData}
+}catch(e){
+  console.log(e)
+}  
 }
 async function scheduleFunc(url, groupNumber) {
   try{
@@ -565,6 +571,9 @@ bot.on('callback_query', async query => {
   const { chat, message_id, text } = query.message
   console.log(query.data)
   switch(query.data){
+    case '1':
+
+      break
     case 'switchStatus':
       let activeStatus = await switchScript(chat.id)
       let status_enabled = 'Включено ✅'
@@ -653,6 +662,42 @@ bot.on('message', async msg => {
       
       
       break  
+    case kb.manage.subscription:
+      let Text1 = 'Доступны следующие варианты подписок:'
+      
+      bot.sendMessage(chatId, Text1,
+        {
+          parse_mode: "HTML",
+          reply_markup:  {
+            inline_keyboard:  [
+              [
+                {
+                  text: '1 месяц - 79руб',
+                  callback_data: '1'
+                }
+              ],
+              [
+                {
+                  text: '3 месяца - 219руб',
+                  callback_data: '3'
+                }
+              ],
+              [
+                {
+                  text: '6 месяцов - 429руб',
+                  callback_data: '6'
+                }
+              ],
+              [
+                {
+                  text: '12 месяцов - 799руб',
+                  callback_data: '12'
+                }
+              ]
+          ]
+        } 
+        })
+        break
     case kb.back:
       bot.sendMessage(chatId, "Выберите пункт меню ", {
         reply_markup: {
@@ -715,7 +760,7 @@ function getWeekday(){
 
 
 
-main()
+//main()
 async function main(){
 try {
   let date = new Date();

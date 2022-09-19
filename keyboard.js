@@ -8,6 +8,7 @@ module.exports = {
   ],
   manage: [
     [kb.manage.settings],
+    [kb.manage.subscription,],
     [kb.back]
   ]
   
