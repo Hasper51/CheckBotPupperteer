@@ -1,7 +1,9 @@
 const TelegramBot = require('node-telegram-bot-api');
 const dotenv = require('dotenv');
 dotenv.config()
+const QiwiBillPaymentsAPI = require('@qiwi/bill-payments-node-js-sdk');
 const qiwiApi = new QiwiBillPaymentsAPI(process.env.SECRET_KEY);
+const publicKey = '48e7qUxn9T7RyYE1MVZswX1FRSbE6iyCj2gCRwwF3Dnh5XrasNTx3BGPiMsyXQFNKQhvukniQG8RTVhYm3iP6fA967VXopCowj5Xnqtq7qG3oCKiF5muT6HfT18wdfkKrdhK5ZBARwWWpN1SMvQbR2SmtURSDgUggcrikwbk629hu4dhsc3W2roCGuHkc'
 const MongoClient = require("mongodb").MongoClient;
 const mongoClient = new MongoClient(process.env.mongodb_url);
 const puppeteer = require('puppeteer');
@@ -571,7 +573,54 @@ bot.on('callback_query', async query => {
   const { chat, message_id, text } = query.message
   console.log(query.data)
   switch(query.data){
-    case '1':
+    case "back":
+      break
+    case 'payment':
+      const billId = qiwiApi.generateId();
+      const lifetime = qiwiApi.getLifetimeByDay(0.1);
+      const fields = {
+        amount: 1.00,
+        currency: 'RUB',
+        comment: 'Hello world',
+        expirationDateTime: lifetime,
+        account : chat.id,
+      };
+      
+      qiwiApi.createBill( billId, fields ).then( data => {
+          //do with data
+          console.log(data)
+          bot.editMessageText(Text, {
+            message_id: message_id,
+            chat_id: chat.id,
+            parse_mode: "HTML",
+            reply_markup:  
+            {
+              inline_keyboard:  [
+                [
+                  {
+                    text: 'Оплатить',
+                    url: data.payUrl
+                  }
+                ],
+                [
+                  {
+                    text: 'Проверить оплату',
+                    callback_data: 'check_payment'
+                  }
+                ],
+                [
+                  {
+                    text: 'Назад',
+                    callback_data: ''
+                  }
+                ]
+              ]
+            } 
+          })
+      });
+      
+      
+      
 
       break
     case 'switchStatus':
@@ -673,25 +722,25 @@ bot.on('message', async msg => {
               [
                 {
                   text: '1 месяц - 79руб',
-                  callback_data: '1'
+                  callback_data: 'payment'
                 }
               ],
               [
                 {
                   text: '3 месяца - 219руб',
-                  callback_data: '3'
+                  callback_data: 'payment'
                 }
               ],
               [
                 {
                   text: '6 месяцов - 429руб',
-                  callback_data: '6'
+                  callback_data: 'payment'
                 }
               ],
               [
                 {
                   text: '12 месяцов - 799руб',
-                  callback_data: '12'
+                  callback_data: 'payment'
                 }
               ]
           ]
