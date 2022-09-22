@@ -7,6 +7,7 @@ const publicKey = '48e7qUxn9T7RyYE1MVZswX1FRSbE6iyCj2gCRwwF3Dnh5XrasNTx3BGPiMsyX
 const MongoClient = require("mongodb").MongoClient;
 const mongoClient = new MongoClient(process.env.mongodb_url);
 const puppeteer = require('puppeteer');
+const moment = require('moment');
 const ontime = require('ontime');
 const kb = require('./keyboard-buttons');
 const keyboard = require('./keyboard');
@@ -571,28 +572,27 @@ bot.onText(/\/smessage/, async(msg) => {
 
 bot.on('callback_query', async query => {
   const { chat, message_id, text } = query.message
-  console.log(query.data)
+  
   switch(query.data){
-    case "back":
-      break
-    case 'payment':
+    case query.data.match(/payment_/)?.input:
       const billId = qiwiApi.generateId();
       const lifetime = qiwiApi.getLifetimeByDay(0.1);
+      console.log(query.data.slice(query.data.lastIndexOf('_')+1))
+      console.log(typeof(query.data.slice(query.data.lastIndexOf('_')+1)))
       const fields = {
-        amount: 1.00,
+        amount: query.data.slice(query.data.lastIndexOf('_')+1),
         currency: 'RUB',
-        comment: 'Hello world',
         expirationDateTime: lifetime,
         account : chat.id,
+        customFields: {callback_query: query.data}
       };
-      
+
       qiwiApi.createBill( billId, fields ).then( data => {
           //do with data
           console.log(data)
-          bot.editMessageText(Text, {
+          bot.editMessageText(`Оплатите счет по ссылке ниже.`, {
             message_id: message_id,
             chat_id: chat.id,
-            parse_mode: "HTML",
             reply_markup:  
             {
               inline_keyboard:  [
@@ -605,13 +605,7 @@ bot.on('callback_query', async query => {
                 [
                   {
                     text: 'Проверить оплату',
-                    callback_data: 'check_payment'
-                  }
-                ],
-                [
-                  {
-                    text: 'Назад',
-                    callback_data: ''
+                    callback_data: 'check_'+billId
                   }
                 ]
               ]
@@ -622,6 +616,60 @@ bot.on('callback_query', async query => {
       
       
 
+      break
+    case query.data.match(/check_/)?.input:
+      let bill = query.data.slice(6)
+      qiwiApi.getBillInfo(bill).then(async data => {
+        console.log(data.status.value)
+        if(data.status.value==='WAITING'){
+          bot.sendMessage(chat.id, 'Счет выставлен, ожидает оплаты')
+          
+        }else{
+          if(data.status.value==='PAID'){
+            let createdDate = moment(new Date()).utc().format();
+            let expirationDate = moment(createdDate).add(data.customFields.callback_query.substring(data.customFields.callback_query.indexOf('_')+1, data.customFields.callback_query.lastIndexOf('_')), 'month');
+            let sub_days = expirationDate.diff(createdDate, 'days')
+            bot.sendMessage(chat.id, 'Вы приобрели подписку')
+            try{
+              await mongoClient.connect();
+              const db = mongoClient.db("AutoCheckBotDatabase");
+              await db.collection("check_payment").insertOne(data)
+              console.log("Информация об оплате сохранена");
+              // mongoClient.connect(function(err, db) {
+              //   if (err) throw err;
+              //   let dbo = db.db("AutoCheckBotDatabase");
+                
+              //   dbo.collection("check_payment").insertOne(data, function(err, res) {
+              //     if (err) throw err;
+              //     console.log("Информация об оплате сохранена");
+              //     db.close();
+              //   });
+                
+                
+                console.log(sub_days)
+                await db.collection("users").updateOne({chat_id: chat.id},{$inc: {subscription: sub_days}})
+                
+                console.log("Кол-во дней в подписке изменено");
+              }catch{
+                console.log(e)
+              }finally{
+                await mongoClient.close();
+              }
+              
+            
+
+          }
+          else if(data.status.value==='REJECTED')
+            bot.sendMessage(chat.id, 'Счет отклонен')
+          else if(data.status.value==='EXPIRED')
+            bot.sendMessage(chat.id, 'Время жизни счета истекло. Счет не оплачен')
+          bot.deleteMessage(chat.id, message_id)
+          
+          
+        }
+      });
+    
+      
       break
     case 'switchStatus':
       let activeStatus = await switchScript(chat.id)
@@ -716,35 +764,8 @@ bot.on('message', async msg => {
       
       bot.sendMessage(chatId, Text1,
         {
-          parse_mode: "HTML",
-          reply_markup:  {
-            inline_keyboard:  [
-              [
-                {
-                  text: '1 месяц - 79руб',
-                  callback_data: 'payment'
-                }
-              ],
-              [
-                {
-                  text: '3 месяца - 219руб',
-                  callback_data: 'payment'
-                }
-              ],
-              [
-                {
-                  text: '6 месяцов - 429руб',
-                  callback_data: 'payment'
-                }
-              ],
-              [
-                {
-                  text: '12 месяцов - 799руб',
-                  callback_data: 'payment'
-                }
-              ]
-          ]
-        } 
+          
+          reply_markup: kb.payment 
         })
         break
     case kb.back:
