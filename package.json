@@ -17,9 +17,7 @@
     "fs": "0.0.1-security",
     "moment": "^2.29.4",
     "mongodb": "^4.5.0",
-    "mongoose": "^6.3.1",
     "node-telegram-bot-api": "^0.56.0",
-    "nodemon": "^2.0.15",
     "ontime": "0.0.8",
     "puppeteer": "^13.5.0"
   }

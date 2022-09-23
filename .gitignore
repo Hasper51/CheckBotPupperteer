@@ -1,2 +1,12 @@
 /node_modules
 .idea
+.env
+chat_id.json
+data_.json
+data.json
+disciplines.json
+index.js
+moment_test.js
+parce.js
+sb.js
+test.js
