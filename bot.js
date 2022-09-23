@@ -1,7 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const dotenv = require('dotenv');
 dotenv.config()
-
+let cipher = require('./cipher.js')(process.env.HASH_KEY);
 const QiwiBillPaymentsAPI = require('@qiwi/bill-payments-node-js-sdk');
 const qiwiApi = new QiwiBillPaymentsAPI(process.env.SECRET_KEY);
 const publicKey = '48e7qUxn9T7RyYE1MVZswX1FRSbE6iyCj2gCRwwF3Dnh5XrasNTx3BGPiMsyXQFNKQhvukniQG8RTVhYm3iP6fA967VXopCowj5Xnqtq7qG3oCKiF5muT6HfT18wdfkKrdhK5ZBARwWWpN1SMvQbR2SmtURSDgUggcrikwbk629hu4dhsc3W2roCGuHkc'
@@ -68,7 +68,7 @@ async function register(){
   const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
   const page = await browser.newPage();
   try{
-        await page.goto('https://lk.sut.ru/cabinet/')
+        await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
   } catch (error){
         console.log(error.message)
         console.log("FAILED. Сайт долго отвечат на запрос.")
@@ -212,7 +212,7 @@ async function updateDisciplines(){
     const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
     const page = await browser.newPage();
     try{
-          await page.goto('https://lk.sut.ru/cabinet/')
+          await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
     } catch (error){
           console.error(error)
           console.log("FAILED. Сайт долго отвечат на запрос.")
@@ -504,7 +504,7 @@ try{
 }
 async function scheduleFunc(url, groupNumber) {
   try{
-    const browser = await puppeteer.launch({ headless: true , defaultViewport: null, args: ['--no-sandbox']});
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox']});
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2' });
     let link = await page.$(`a[data-nm='${groupNumber}']`);
