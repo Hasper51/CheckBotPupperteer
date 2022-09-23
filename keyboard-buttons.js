@@ -1,18 +1,21 @@
-let add_points={
-  manage: 'Управление',
-  updates: 'Обновления'
-}
+// let add_points={
+//   manage: 'Управление',
+//   updates: 'Обновления'
+// }
 module.exports = {
    
   home: {
     switch: 'Статус работы',
-    ...add_points
-  }, 
-  manage: {
+    subscription: 'Купить подписку',
+    check_subscription: 'Проверить подписку',
     settings: 'Редактировать дисциплины',
-    subscription: 'Подписка'
-  },
-  back: 'Назад',
+    //...add_points
+  }, 
+  // manage: {
+  //   settings: 'Редактировать дисциплины',
+  //   subscription: 'Подписка'
+  // },
+  //back: 'Назад',
   payment: {
     inline_keyboard:  [
       [

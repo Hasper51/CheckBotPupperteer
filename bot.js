@@ -134,18 +134,18 @@ async function register(){
     })
     
     person.disciplines = sub
-    person.group=group
+    person.group = group
 
     await browser.close();
     
   } catch (error) {
-    console.log(userId, "Повторите попытку! Не удалось загрузать ваши данные.")
-    bot.editMessageText("Повторите попытку! Не удалось загрузать ваши данные.")
+    console.log(userId, "Повторите попытку! Не удалось загрузить ваши данные.")
+    bot.editMessageText("Повторите попытку! Не удалось загрузить ваши данные.")
   }
   try {
     await addUser()
     await addSchedule(userId,person.group)
-    bot.sendMessage(userId, "Принято! Ознакомиться с командами можно через меню.\n Вызов клавиатуры командой /keyboard")
+    bot.sendMessage(userId, "Принято! Ознакомиться с командами можно через меню.\n Вызов клавиатуры командой /keyboard.\nВам доступно 7 дней бесплатного пользования.")
     console.log(userId+': Зарегистрировался')
     console.log('addDisciplines')
   }catch(e) {
@@ -158,11 +158,26 @@ async function register(){
    
   
 }
-bot.onText(/\/start/, msg => {
+bot.onText(/\/start/, async msg => {
     const {id} = msg.chat;
-    bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЗдесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`)
-    bot.sendMessage(id, `Чтобы отправить логин напишите:\n/login Ваш логин\nЗатем отправьте пароль командой:\n/pass Ваш пароль
-`)
+    try {
+      await mongoClient.connect();
+      const db = mongoClient.db("AutoCheckBotDatabase");
+      const collection = db.collection("users");
+      let check_account = await collection.findOne({chat_id: id})
+      if(!check_account){
+        bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЗдесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`)
+        bot.sendMessage(id, `Чтобы отправить логин напишите:\n/login Ваш логин\nЗатем отправьте пароль командой:\n/pass Ваш пароль`)
+      }else{
+        bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЭто бот для автоматизации некоторых процессов в лк sut`)
+      }
+      
+    }catch(e) {
+      console.log(e)
+    }finally {
+      await mongoClient.close();
+    }   
+    
 })
 async function switchScript(chat_id) {
   try {
@@ -302,7 +317,8 @@ async function addUser(){
       password: person.password,
       group: person.group,
       chat_id: person.chat_id,
-      disciplines: person.disciplines
+      disciplines: person.disciplines,
+      subscription: 7
     }) 
 }
 async function addSchedule(chatId, group){
@@ -418,7 +434,7 @@ async function getDataForScriptMain(){
     const db = mongoClient.db("AutoCheckBotDatabase");
     const collection = db.collection("users");
     if(remains_after_main.length==0){
-      const res = await collection.find({active: true}).project({
+      const res = await collection.find({active: true, subscription: { $gt: 0 }}).project({
         _id: 0,
         login: 1,
         password: 1,
@@ -428,7 +444,7 @@ async function getDataForScriptMain(){
       }).toArray()
       return res
     }else{
-      const res = await collection.find({active: true, chat_id:{$in: remains_after_main}}).project({
+      const res = await collection.find({active: true, subscription: { $gt: 0 }, chat_id:{$in: remains_after_main}}).project({
         _id: 0,
         login: 1,
         password: 1,
@@ -534,7 +550,45 @@ async function scheduleFunc(url, groupNumber) {
   
 }
 
-
+async function decrease_subscription(){
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+    await collection.updateMany(
+      {
+        subscription: {$gt: 0}
+      },
+      {
+        $inc: {subscription: -1}
+      }
+    )
+  } catch (error) {
+    console.log(error)
+  } finally {
+    await mongoClient.close();
+  }
+}
+async function check_subscription_key(chat_id){
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+    let sub_days = await collection.findOne(
+      {
+        chat_id: chat_id
+      },
+      {
+        projection: { _id: 0, subscription: 1}
+      }
+    )
+    return sub_days.subscription
+  } catch (error) {
+    console.log(error)
+  } finally {
+    await mongoClient.close();
+  }
+}
 bot.onText(/\/keyboard/, async msg => {
   const chatId = msg.chat.id
   bot.sendMessage(chatId, "Выберите пункт меню ", {
@@ -647,10 +701,17 @@ bot.on('callback_query', async query => {
                 
                 
                 console.log(sub_days)
-                await db.collection("users").updateOne({chat_id: chat.id},{$inc: {subscription: sub_days}})
+                try{
+                  await db.collection("users").updateOne({chat_id: chat.id},{$inc: {subscription: sub_days}})
+                  console.log("Кол-во дней в подписке изменено");
+                }catch(err){
+                  console.log("Подписка в базе данных не обновлена");
+                  console.log(err)
+                }
                 
-                console.log("Кол-во дней в подписке изменено");
-              }catch{
+                
+                
+              }catch(e){
                 console.log(e)
               }finally{
                 await mongoClient.close();
@@ -672,6 +733,7 @@ bot.on('callback_query', async query => {
       
       break
     case 'switchStatus':
+
       let activeStatus = await switchScript(chat.id)
       let status_enabled = 'Включено ✅'
       let status_disabled = 'Отключено ❌'
@@ -716,50 +778,55 @@ bot.on('message', async msg => {
   const chatId = msg.chat.id
   let status_enabled = 'Включено ✅'
   let status_disabled = 'Отключено ❌'
+  
   switch(msg.text){
     case kb.home.switch:
+      if(await check_subscription_key(chatId)!==0){
       
-      
-      let button_status = await getActiveStatus(chatId);
-      bot.sendMessage(chatId, "Текущий статус:" , 
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{
-              text: button_status?status_enabled:status_disabled,
-              callback_data: 'switchStatus'
-              
-            }]
-          ]
-        }
-      })
-
+        let button_status = await getActiveStatus(chatId);
+        bot.sendMessage(chatId, "Текущий статус:" , 
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{
+                text: button_status?status_enabled:status_disabled,
+                callback_data: 'switchStatus'
+                
+              }]
+            ]
+          }
+        })
+      }else{
+        bot.sendMessage(chatId, "Срок действия вашей подписки истек. Чтобы продолжить пользоваться ботом продлите подписку.")
+      }
       break
-    case kb.home.updates:
-      bot.sendMessage(chatId,"https://telegra.ph/AutoCheckBot-Beta-10-04-18")
-      break
-    case kb.home.manage:
-      bot.sendMessage(chatId, "Выберите пункт меню ", {
-        reply_markup: {
-          keyboard: keyboard.manage
-        }
-      })
-      break
-    case kb.manage.settings:
-      
-      let {Text, keyBoardData} = await editDisciplinesMenu(chatId)
-      
-      
+    // case kb.home.updates:
+    //   bot.sendMessage(chatId,"https://telegra.ph/AutoCheckBot-Beta-10-04-18")
+    //   break
+    // case kb.home.manage:
+    //   bot.sendMessage(chatId, "Выберите пункт меню ", {
+    //     reply_markup: {
+    //       keyboard: keyboard.manage
+    //     }
+    //   })
+    //   break
+    case kb.home.settings:
+      if(await check_subscription_key(chatId)!==0){
+        let {Text, keyBoardData} = await editDisciplinesMenu(chatId)
         
-      bot.sendMessage(chatId, Text,
-      {
-        parse_mode: "HTML",
-        reply_markup:  {inline_keyboard:  keyBoardData} 
-      })
+        
+          
+        bot.sendMessage(chatId, Text,
+        {
+          parse_mode: "HTML",
+          reply_markup:  {inline_keyboard:  keyBoardData} 
+        })
       
-      
+      }else{
+        bot.sendMessage(chatId, "Срок вашей подписки истек. Чтобы продолжить пользоваться ботом продлите подписку.")
+      }
       break  
-    case kb.manage.subscription:
+    case kb.home.subscription:
       let Text1 = 'Доступны следующие варианты подписок:'
       
       bot.sendMessage(chatId, Text1,
@@ -767,17 +834,36 @@ bot.on('message', async msg => {
           
           reply_markup: kb.payment 
         })
-        break
-    case kb.back:
-      bot.sendMessage(chatId, "Выберите пункт меню ", {
-        reply_markup: {
-          keyboard: keyboard.home
-        }
-      })
       break
+    case kb.home.check_subscription:
+      let sub_days = await check_subscription_key(chatId);
+      if(sub_days!==0){
+        let createdDateNow = moment(new Date()).utc().format();
+        let sub_end_date = moment(createdDateNow).add(sub_days,'days')
+        bot.sendMessage(chatId, `Дней до окончания подписки: ${sub_days}\nПодписка действует до: ${sub_end_date.format('DD.MM.YYYY')}`)
+      }else{
+        bot.sendMessage(chatId, "Срок вашей подписки истек. Чтобы продолжить пользоваться ботом продлите подписку.")
+      }
+      break     
+    // case kb.back:
+    //   bot.sendMessage(chatId, "Выберите пункт меню ", {
+    //     reply_markup: {
+    //       keyboard: keyboard.home
+    //     }
+    //   })
+    //   break
   }
 })
 getWeekday();
+
+ontime({
+  cycle: '00:00:00'
+  
+}, function(dec_sub){
+  decrease_subscription();
+  dec_sub.done();
+  return
+}),
 ontime({
   cycle: ['weekday 08:00:00', 'sat 08:00:00']
   
