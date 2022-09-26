@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const dotenv = require('dotenv');
-dotenv.config()
+dotenv.config();
 
 const QiwiBillPaymentsAPI = require('@qiwi/bill-payments-node-js-sdk');
 const qiwiApi = new QiwiBillPaymentsAPI(process.env.SECRET_KEY_QIWI);
@@ -365,23 +365,18 @@ async function updateSchedule(){
     for (let i = 0; i < groups.length; i++){
       let schedule = await scheduleFunc('https://www.sut.ru/studentu/raspisanie/raspisanie-zanyatiy-studentov-ochnoy-i-vecherney-form-obucheniya', groups[i])
       try {
+        await mongoClient.connect();
+        const db = mongoClient.db("AutoCheckBotDatabase");
+        const collection = db.collection("users");
         await collection.updateMany(
           {group: groups[i],},
-          {
-            $set: {
-              'schedule': schedule
-              
-              }
-            
-          }
+          {$set: {'schedule': schedule}}
         )
-      } catch (error) {
-        console.log(error.message)
+      }catch(err) {
+        console.log(err)
       }
-      
     }
-    console.log("Schedule updated")
-  }catch (e) {
+  }catch(e) {
     console.log(e.message)
   }finally{
     await mongoClient.close();
@@ -815,7 +810,7 @@ bot.on('message', async msg => {
   
   switch(msg.text){
     case kb.home.switch:
-      console.log(check_subscription)
+      
       if(check_subscription!==0){
       
         let button_status = await getActiveStatus(chatId);
@@ -856,7 +851,7 @@ bot.on('message', async msg => {
       }
       break  
     case kb.home.subscription:
-      if(check_subscription!==undefined){
+      if(check_subscription==undefined){
         bot.sendMessage(chatId, "Чтобы пользоваться ботом, вам нужно зарегистрироваться. Сделать это можно командой /start")
       }else{
         let Text1 = 'Доступны следующие варианты подписок:'
@@ -872,8 +867,8 @@ bot.on('message', async msg => {
       
       if(check_subscription!==0){
         let createdDateNow = moment(new Date()).utc().format();
-        let sub_end_date = moment(createdDateNow).add(sub_days,'days')
-        bot.sendMessage(chatId, `Дней до окончания подписки: ${sub_days}\nПодписка действует до: ${sub_end_date.format('DD.MM.YYYY')}`)
+        let sub_end_date = moment(createdDateNow).add(check_subscription,'days')
+        bot.sendMessage(chatId, `Дней до окончания подписки: ${check_subscription}\nПодписка действует до ${sub_end_date.format('DD.MM.YYYY')}`)
       }else if(check_subscription==undefined){
         bot.sendMessage(chatId, "Чтобы пользоваться ботом, вам нужно зарегистрироваться. Сделать это можно командой /start")
       }else{
