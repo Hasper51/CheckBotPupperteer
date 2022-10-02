@@ -1,10 +1,9 @@
 {
-  "name": "checkbotpupperteer",
+  "name": "autocheckbot",
   "version": "1.0.0",
   "description": "",
   "main": "bot.js",
   "scripts": {
-    "dev": "nodemon bot.js",
     "start": "node bot.js"
   },
   "keywords": [],
@@ -12,9 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@qiwi/bill-payments-node-js-sdk": "^3.2.1",
-    "curl": "^0.1.4",
     "dotenv": "^16.0.0",
-    "fs": "0.0.1-security",
     "moment": "^2.29.4",
     "mongodb": "^4.5.0",
     "node-telegram-bot-api": "^0.56.0",

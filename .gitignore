@@ -10,3 +10,6 @@ moment_test.js
 parce.js
 sb.js
 test.js
+Dockerfile
+docker-compose.yml
+.dockerignore
