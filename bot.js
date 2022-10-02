@@ -70,7 +70,7 @@ async function register(){
   const browser = await puppeteer.launch({headless:true, args: [
     
     "--no-sandbox",
-], executablePath: '/usr/bin/google-chrome-stable'})
+], executablePath: '/usr/bin/chromium-browser'})
   const page = await browser.newPage();
   try{
         await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
@@ -217,7 +217,7 @@ async function updateDisciplines(){
     const browser = await puppeteer.launch({headless:true, args: [
       
       "--no-sandbox",
-  ], executablePath: '/usr/bin/google-chrome-stable'})
+  ], executablePath: '/usr/bin/chromium-browser'})
     const page = await browser.newPage();
     try{
           await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
@@ -518,7 +518,7 @@ async function scheduleFunc(url, groupNumber) {
     const browser = await puppeteer.launch({ headless: true, args: [
       
       "--no-sandbox",
-  ], executablePath: '/usr/bin/google-chrome-stable'});
+  ], executablePath: '/usr/bin/chromium-browser'});
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2' });
     let link = await page.$(`a[data-nm='${groupNumber}']`);
@@ -615,7 +615,9 @@ async function check_subscription_key(chat_id){
 bot.onText(/\/keyboard/, async msg => {
   const chatId = msg.chat.id
   let check_subscription_data = await check_subscription_key(chatId)
-  if(check_subscription_data!==undefined){
+  let check_subscription = check_subscription_data.subscription==undefined ? undefined: check_subscription_data.subscription
+  
+  if(check_subscription!==undefined){
     bot.sendMessage(chatId, "Выберите пункт меню ", {
       reply_markup: {
         keyboard: keyboard.home
@@ -1023,7 +1025,7 @@ try {
   const browser = await puppeteer.launch({headless:true, args: [
     
     "--no-sandbox",
-], executablePath: '/usr/bin/google-chrome-stable'})
+], executablePath: '/usr/bin/chromium-browser'})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
   page.on('dialog', async dialog => {
