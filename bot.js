@@ -5,9 +5,9 @@ dotenv.config();
 const QiwiBillPaymentsAPI = require('@qiwi/bill-payments-node-js-sdk');
 const qiwiApi = new QiwiBillPaymentsAPI(process.env.SECRET_KEY_QIWI);
 const MongoClient = require("mongodb").MongoClient;
-const username = encodeURIComponent("autocheckbot_user");
-const password = encodeURIComponent("hkhg&^%&Bhsda687dhFR%**Isdf");
-const mongodb_uri=`mongodb://${username}:${password}@localhost:31523/AutoCheckBotDatabase`
+const mongo_username = encodeURIComponent('autocheckbot_user');
+const mongo_password = encodeURIComponent('hkhg&^%&Bhsda687dhFR%**Isdf');
+const mongodb_uri=`mongodb://${mongo_username}:${mongo_password}@localhost:31523/AutoCheckBotDatabase`
 const mongoClient = new MongoClient(mongodb_uri);
 const puppeteer = require('puppeteer');
 const moment = require('moment');
