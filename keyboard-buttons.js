@@ -6,8 +6,8 @@ module.exports = {
    
   home: {
     switch: '⚙️ Статус работы ⚙️',
-    subscription: '💳 Купить подписку 💳',
-    check_subscription: '🔍 Проверить подписку 🔍',
+    subscription: '💳 Купить подписку',
+    check_subscription: '🔍 Проверить подписку',
     settings: '🛠 Редактировать дисциплины 🛠',
     //...add_points
   }, 

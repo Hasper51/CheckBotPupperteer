@@ -5,7 +5,10 @@ dotenv.config();
 const QiwiBillPaymentsAPI = require('@qiwi/bill-payments-node-js-sdk');
 const qiwiApi = new QiwiBillPaymentsAPI(process.env.SECRET_KEY_QIWI);
 const MongoClient = require("mongodb").MongoClient;
-const mongoClient = new MongoClient(process.env.mongodb_url);
+const username = encodeURIComponent("autocheckbot_user");
+const password = encodeURIComponent("hkhg&^%&Bhsda687dhFR%**Isdf");
+const mongodb_uri=`mongodb://${username}:${password}@localhost:31523/AutoCheckBotDatabase`
+const mongoClient = new MongoClient(mongodb_uri);
 const puppeteer = require('puppeteer');
 const moment = require('moment');
 const ontime = require('ontime');
@@ -612,8 +615,7 @@ async function check_subscription_key(chat_id){
 bot.onText(/\/keyboard/, async msg => {
   const chatId = msg.chat.id
   let check_subscription_data = await check_subscription_key(chatId)
-  let check_subscription = check_subscription_data.subscription
-  if(check_subscription!==undefined){
+  if(check_subscription_data!==undefined){
     bot.sendMessage(chatId, "Выберите пункт меню ", {
       reply_markup: {
         keyboard: keyboard.home
@@ -645,15 +647,27 @@ bot.onText(/\/updateschedule/, async msg => {
 bot.onText(/\/encryptpass/, async msg => {
   const chatId = msg.chat.id
   if(chatId === 458784044){
-    bot.sendMessage(chatId, "Функция encryptPassword запущена")
-    encryptPassword();
+    bot.sendMessage(chatId, "Функция encryptPassword закомментирована")
+    //encryptPassword();
   }
   
   
   
 })
 
-
+async function upd(chat_id,password){ 
+  try {
+  await mongoClient.connect();
+  const db = mongoClient.db("AutoCheckBotDatabase");
+  const collection = db.collection("users");
+  let encrypted_pass = encrypt(password)
+  await collection.updateOne({chat_id: chat_id},{$set: {password: encrypted_pass}})
+}catch(e){
+  console.log(e)
+}finally{
+  await mongoClient.close();
+}
+}
 async function encryptPassword(){
   try {
     await mongoClient.connect();
@@ -662,23 +676,10 @@ async function encryptPassword(){
 
     let res = await collection.find({},{projection:{_id:0, chat_id:1,password:1}}).toArray()
     console.log(res)
-    for(let i=0; i<res.length; i++){
-      await mongoClient.connect();
-      const db = mongoClient.db("AutoCheckBotDatabase");
-      const collection = db.collection("users");
-      let encrypted_pass = encrypt(res[i].password)
-      console.log(encrypted_pass)
-      await collection.updateOne({active: false},{$set: {password: encrypted_pass}})
+    
+    for (let i = 0; i < res.length; i++){
+      await upd(res[i].chat_id, res[i].password)
     }
-    // res.forEach(async (item) => {
-    //   await mongoClient.connect();
-    //   const db = mongoClient.db("AutoCheckBotDatabase");
-    //   const collection = db.collection("users");
-    //   let encrypted_pass = encrypt(item.password)
-    //   console.log(encrypted_pass)
-    //   await collection.updateOne({chat_id: item.chat_id},{$set: {password: encrypted_pass}})
-      
-    // })
     
   } catch (error) {
     console.log(error)
@@ -686,6 +687,7 @@ async function encryptPassword(){
     await mongoClient.close();
   }
 }
+
 //Отправка сервисных сообщений всем
 bot.onText(/\/smessage/, async(msg) => {
   const chatId = msg.chat.id
