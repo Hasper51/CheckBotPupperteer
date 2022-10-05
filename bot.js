@@ -5,10 +5,10 @@ dotenv.config();
 const QiwiBillPaymentsAPI = require('@qiwi/bill-payments-node-js-sdk');
 const qiwiApi = new QiwiBillPaymentsAPI(process.env.SECRET_KEY_QIWI);
 const MongoClient = require("mongodb").MongoClient;
-const mongo_username = encodeURIComponent('autocheckbot_user');
-const mongo_password = encodeURIComponent('hkhg&^%&Bhsda687dhFR%**Isdf');
-const mongodb_uri=`mongodb://${mongo_username}:${mongo_password}@localhost:31523/AutoCheckBotDatabase`
-const mongoClient = new MongoClient(mongodb_uri);
+//const mongo_username = encodeURIComponent('autocheckbot_user');
+//const mongo_password = encodeURIComponent('hkhg&^%&Bhsda687dhFR%**Isdf');
+//const mongodb_uri=`mongodb://${mongo_username}:${mongo_password}@localhost:31523/AutoCheckBotDatabase`
+const mongoClient = new MongoClient(process.env.mongodb_url);
 const puppeteer = require('puppeteer');
 const moment = require('moment');
 const ontime = require('ontime');
@@ -398,11 +398,18 @@ async function getActiveStatus(chatId){
   return results[0].active
 }
 async function getChatIds(){
-  await mongoClient.connect();
-  const db = mongoClient.db("AutoCheckBotDatabase");
-  const collection = db.collection("users");
-  const results = await collection.find({},{projection: { _id: 0, chat_id:1 }}).toArray()
-  return results
+  try{
+    await mongoClient.connect();
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+    const results = await collection.find({},{projection: { _id: 0, chat_id:1 }}).toArray()
+    return results
+  }catch(error){
+    console.log(error)
+  }finally{
+    await mongoClient.close();
+    
+  }
 }
 async function getDisciplines(chatId){
   return new Promise(async function(resolve, reject) {
@@ -696,11 +703,12 @@ bot.onText(/\/smessage/, async(msg) => {
   
   if(chatId === 458784044 || chatId === 411038540){
     bot.sendMessage(chatId, "Напишите и отправьте сообщениие, оно будет разослано всем.\n Чтобы отменить рассылку отправьте «Отмена»");
-    bot.once('message', (msg) => {
+    bot.once('message', async (msg) => {
+      
       if(msg.text.toLowerCase() =="отмена"){
-        
+        bot.sendMessage(chatId, 'Сообщениие отменено')
       }else {
-        let chatIds = getChatIds()
+        let chatIds = await getChatIds()
         chatIds.forEach((element) => {
           bot.sendMessage(element.chat_id, msg.text)
         })
