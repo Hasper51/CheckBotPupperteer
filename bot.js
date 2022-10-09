@@ -397,13 +397,22 @@ async function getActiveStatus(chatId){
   const results = await collection.find({ chat_id: chatId},{projection: { _id: 0, active:1 }}).toArray()
   return results[0].active
 }
+
 async function getChatIds(){
-  await mongoClient.connect();
-  const db = mongoClient.db("AutoCheckBotDatabase");
-  const collection = db.collection("users");
-  const results = await collection.find({},{projection: { _id: 0, chat_id:1 }}).toArray()
-  return results
+    try {
+      await mongoClient.connect();
+      const db = mongoClient.db("AutoCheckBotDatabase");
+      const collection = db.collection("users");
+      const results = await collection.find({},{projection: { _id: 0, chat_id:1 }}).toArray()
+      await mongoClient.close()
+      return results
+      
+    } catch (error) {
+      console.log(error.message)
+    }
+  
 }
+
 async function getDisciplines(chatId){
   return new Promise(async function(resolve, reject) {
     try{
@@ -664,6 +673,7 @@ async function upd(chat_id,password){
   const collection = db.collection("users");
   let encrypted_pass = encrypt(password)
   await collection.updateOne({chat_id: chat_id},{$set: {password: encrypted_pass}})
+  console.log('Пароль зашифрован')
 }catch(e){
   console.log(e)
 }finally{
@@ -696,11 +706,12 @@ bot.onText(/\/smessage/, async(msg) => {
   
   if(chatId === 458784044 || chatId === 411038540){
     bot.sendMessage(chatId, "Напишите и отправьте сообщениие, оно будет разослано всем.\n Чтобы отменить рассылку отправьте «Отмена»");
-    bot.once('message', (msg) => {
+    let chatIds = await getChatIds()
+    bot.once('message',async (msg) => {
       if(msg.text.toLowerCase() =="отмена"){
-        
-      }else {
-        let chatIds = getChatIds()
+        bot.sendMessage(chatId, 'Сообщениие отменено')
+      }else if(msg.text.toLowerCase()!=='/smessage'){
+        //let chatIds = await getChatIds()
         chatIds.forEach((element) => {
           bot.sendMessage(element.chat_id, msg.text)
         })
@@ -710,10 +721,6 @@ bot.onText(/\/smessage/, async(msg) => {
     
   }
 })
-
-
-
-
 
 
 bot.on('callback_query', async query => {
