@@ -593,6 +593,20 @@ async function decrease_subscription(){
     await mongoClient.close();
   }
 }
+
+async function sendNotificationAboutSubscription(){
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+    let res = await collection.find({subscription:1},{projection:{_id:0,chat_id:1,subscription:1}}).toArray()
+    bot.sendMessage(res.chat_id, `До окончания действия вашей подписки остался ${res.subscription} день. Продлите подписку, чтобы продолжить пользоваться ботом.`)
+  }catch(error) {
+    console.log(error)
+  } finally {
+    await mongoClient.close();
+  }
+}
 async function check_subscription_key(chat_id){
   try {
     await mongoClient.connect();
@@ -951,7 +965,14 @@ bot.on('message', async msg => {
   }
 )
 getWeekday();
-
+ontime({
+  cycle: '12:00:00'
+  
+}, function(send_notif){
+  sendNotificationAboutSubscription();
+  send_notif.done();
+  return
+}),
 ontime({
   cycle: '00:00:00'
   
