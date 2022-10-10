@@ -383,19 +383,32 @@ async function updateSchedule(){
   }
 }
 async function getActiveStatus(chatId){
-  await mongoClient.connect();
-  const db = mongoClient.db("AutoCheckBotDatabase");
-  const collection = db.collection("users");
-  const results = await collection.find({ chat_id: chatId},{projection: { _id: 0, active:1 }}).toArray()
-  return results[0].active
+  try{
+    await mongoClient.connect();
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+    const results = await collection.find({ chat_id: chatId},{projection: { _id: 0, active:1 }}).toArray()
+    return results[0].active
+  }catch(err) {
+    console.log(err)
+  }
 }
 async function getChatIds(){
-  await mongoClient.connect();
-  const db = mongoClient.db("AutoCheckBotDatabase");
-  const collection = db.collection("users");
-  const results = await collection.find({},{projection: { _id: 0, chat_id:1 }}).toArray()
-  return results
+  return new Promise(async function(resolve, reject) { 
+    try {
+      await mongoClient.connect();
+      const db = mongoClient.db("AutoCheckBotDatabase");
+      const collection = db.collection("users");
+      const results = await collection.find({},{projection: { _id: 0, chat_id:1 }}).toArray()
+      console.log(results)
+      await mongoClient.close();
+      resolve(results)
+    } catch (error) {
+      reject(error.message)
+    }
+  })
 }
+
 async function getDisciplines(chatId){
   return new Promise(async function(resolve, reject) {
     try{
@@ -404,7 +417,6 @@ async function getDisciplines(chatId){
       const collection = db.collection("users");
       const results = await collection.find({ chat_id: chatId},{projection: { _id: 0, disciplines:1}}).toArray()
       await mongoClient.close();
-      //return results[0].disciplines
       resolve(results[0].disciplines)
     }catch(err){
       console.log(err.message)
@@ -626,18 +638,27 @@ bot.onText(/\/updateschedule/, async msg => {
     bot.sendMessage(chatId, "Функция updateSchedule запущена")
   }
 })
+bot.onText(/\/sendchangelog/, async msg => {
+  const chatId = msg.chat.id
+  if(chatId === 458784044){
+    updateSchedule();
+    bot.sendMessage(chatId, "Функция updateSchedule запущена")
+  }
+})
 //Отправка сервисных сообщений всем
 bot.onText(/\/smessage/, async(msg) => {
   const chatId = msg.chat.id
   
   if(chatId === 458784044 || chatId === 411038540){
     bot.sendMessage(chatId, "Напишите и отправьте сообщениие, оно будет разослано всем.\n Чтобы отменить рассылку отправьте «Отмена»");
-    bot.once('message', (msg) => {
+    bot.once('message', async (msg) => {
       if(msg.text.toLowerCase() =="отмена"){
-        
+        bot.sendMessage(chatId, 'Сообщение отменено')
       }else {
-        let chatIds = getChatIds()
+        let chatIds = await getChatIds()
+        console.log(chatIds)
         chatIds.forEach((element) => {
+          console.log(element)
           bot.sendMessage(element.chat_id, msg.text)
         })
       }
