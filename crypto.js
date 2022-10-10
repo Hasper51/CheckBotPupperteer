@@ -6,7 +6,8 @@ const secretKey = process.env.secretKey
 const iv = process.env.iv
 const encrypt = (text) => {
     
-    // const iv = crypto.randomBytes(16);
+    // const iv1 = crypto.randomBytes(16);
+    // const secretKey1 = crypto.randomBytes(32);
     
     const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
 
@@ -24,6 +25,8 @@ const decrypt = (hash) => {
 
     return decrpyted.toString();
 };
+
+
 
 module.exports = {
     encrypt,

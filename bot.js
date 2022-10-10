@@ -5,6 +5,9 @@ dotenv.config();
 const QiwiBillPaymentsAPI = require('@qiwi/bill-payments-node-js-sdk');
 const qiwiApi = new QiwiBillPaymentsAPI(process.env.SECRET_KEY_QIWI);
 const MongoClient = require("mongodb").MongoClient;
+//const mongo_username = encodeURIComponent('autocheckbot_user');
+//const mongo_password = encodeURIComponent('hkhg&^%&Bhsda687dhFR%**Isdf');
+//const mongodb_uri=`mongodb://${mongo_username}:${mongo_password}@localhost:31523/AutoCheckBotDatabase`
 const mongoClient = new MongoClient(process.env.mongodb_url);
 const puppeteer = require('puppeteer');
 const moment = require('moment');
@@ -46,7 +49,6 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
         person.password = match
         person.chat_id = userId
         await register();
-        console.log(person)
         person = {
           login: '',
           password: '',
@@ -65,7 +67,10 @@ bot.onText(/\/pass (.+)/, async (msg, [source, match]) => {
 
 async function register(){
   console.log("register")
-  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
+  const browser = await puppeteer.launch({headless:true, args: [
+    
+    "--no-sandbox",
+], executablePath: '/usr/bin/chromium-browser'})
   const page = await browser.newPage();
   try{
         await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
@@ -167,7 +172,7 @@ bot.onText(/\/start/, async msg => {
       const collection = db.collection("users");
       let check_account = await collection.findOne({chat_id: id})
       if(!check_account){
-        bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЗдесь можно добавить свои данные для автоматизации некоторых процессов в лк sut`)
+        bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЗдесь можно добавить свои данные для автоматизации процессов в лк sut`)
         bot.sendMessage(id, `Чтобы отправить логин напишите:\n/login Ваш логин\nЗатем отправьте пароль командой:\n/pass Ваш пароль`)
       }else{
         bot.sendMessage(id, `Привет, ${msg.from.first_name}!\nЭто бот для автоматизации некоторых процессов в лк sut`)
@@ -209,7 +214,10 @@ async function updateDisciplines(){
         $group: {_id: "$group", login: {$first: '$login'}, password: {$first: '$password'}}
       }
     ]).toArray()
-    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
+    const browser = await puppeteer.launch({headless:true, args: [
+      
+      "--no-sandbox",
+  ], executablePath: '/usr/bin/chromium-browser'})
     const page = await browser.newPage();
     try{
           await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
@@ -394,19 +402,18 @@ async function getActiveStatus(chatId){
   }
 }
 async function getChatIds(){
-  return new Promise(async function(resolve, reject) { 
-    try {
-      await mongoClient.connect();
-      const db = mongoClient.db("AutoCheckBotDatabase");
-      const collection = db.collection("users");
-      const results = await collection.find({},{projection: { _id: 0, chat_id:1 }}).toArray()
-      console.log(results)
-      await mongoClient.close();
-      resolve(results)
-    } catch (error) {
-      reject(error.message)
-    }
-  })
+  try{
+    await mongoClient.connect();
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+    const results = await collection.find({},{projection: { _id: 0, chat_id:1 }}).toArray()
+    return results
+  }catch(error){
+    console.log(error)
+  }finally{
+    await mongoClient.close();
+    
+  }
 }
 
 async function getDisciplines(chatId){
@@ -519,7 +526,10 @@ try{
 }
 async function scheduleFunc(url, groupNumber) {
   try{
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox']});
+    const browser = await puppeteer.launch({ headless: true, args: [
+      
+      "--no-sandbox",
+  ], executablePath: '/usr/bin/chromium-browser'});
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2' });
     let link = await page.$(`a[data-nm='${groupNumber}']`);
@@ -598,7 +608,14 @@ async function check_subscription_key(chat_id){
         projection: { _id: 0, subscription: 1}
       }
     )
-    return sub_days.subscription
+    await mongoClient.close();
+    
+    if(sub_days==null){
+      
+      return {subscription: undefined}
+    }
+    else
+      return sub_days
   } catch (error) {
     console.log(error)
   } finally {
@@ -608,7 +625,9 @@ async function check_subscription_key(chat_id){
 //Вызов клавиатуры
 bot.onText(/\/keyboard/, async msg => {
   const chatId = msg.chat.id
-  let check_subscription = await check_subscription_key(chatId)
+  let check_subscription_data = await check_subscription_key(chatId)
+  let check_subscription = check_subscription_data.subscription==undefined ? undefined: check_subscription_data.subscription
+  
   if(check_subscription!==undefined){
     bot.sendMessage(chatId, "Выберите пункт меню ", {
       reply_markup: {
@@ -638,13 +657,50 @@ bot.onText(/\/updateschedule/, async msg => {
     bot.sendMessage(chatId, "Функция updateSchedule запущена")
   }
 })
-bot.onText(/\/sendchangelog/, async msg => {
+bot.onText(/\/encryptpass/, async msg => {
   const chatId = msg.chat.id
   if(chatId === 458784044){
-    updateSchedule();
-    bot.sendMessage(chatId, "Функция updateSchedule запущена")
+    bot.sendMessage(chatId, "Функция encryptPassword закомментирована")
+    //encryptPassword();
   }
+  
+  
+  
 })
+
+async function upd(chat_id,password){ 
+  try {
+  await mongoClient.connect();
+  const db = mongoClient.db("AutoCheckBotDatabase");
+  const collection = db.collection("users");
+  let encrypted_pass = encrypt(password)
+  await collection.updateOne({chat_id: chat_id},{$set: {password: encrypted_pass}})
+}catch(e){
+  console.log(e)
+}finally{
+  await mongoClient.close();
+}
+}
+async function encryptPassword(){
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+
+    let res = await collection.find({},{projection:{_id:0, chat_id:1,password:1}}).toArray()
+    console.log(res)
+    
+    for (let i = 0; i < res.length; i++){
+      await upd(res[i].chat_id, res[i].password)
+    }
+    
+  } catch (error) {
+    console.log(error)
+  } finally {
+    await mongoClient.close();
+  }
+}
+
 //Отправка сервисных сообщений всем
 bot.onText(/\/smessage/, async(msg) => {
   const chatId = msg.chat.id
@@ -652,11 +708,11 @@ bot.onText(/\/smessage/, async(msg) => {
   if(chatId === 458784044 || chatId === 411038540){
     bot.sendMessage(chatId, "Напишите и отправьте сообщениие, оно будет разослано всем.\n Чтобы отменить рассылку отправьте «Отмена»");
     bot.once('message', async (msg) => {
+      
       if(msg.text.toLowerCase() =="отмена"){
-        bot.sendMessage(chatId, 'Сообщение отменено')
+        bot.sendMessage(chatId, 'Сообщениие отменено')
       }else {
         let chatIds = await getChatIds()
-        console.log(chatIds)
         chatIds.forEach((element) => {
           console.log(element)
           bot.sendMessage(element.chat_id, msg.text)
@@ -679,9 +735,7 @@ bot.on('callback_query', async query => {
   switch(query.data){
     case query.data.match(/payment_/)?.input:
       const billId = qiwiApi.generateId();
-      const lifetime = qiwiApi.getLifetimeByDay(0.1);
-      console.log(query.data.slice(query.data.lastIndexOf('_')+1))
-      console.log(typeof(query.data.slice(query.data.lastIndexOf('_')+1)))
+      const lifetime = qiwiApi.getLifetimeByDay(0.02);
       const fields = {
         amount: query.data.slice(query.data.lastIndexOf('_')+1),
         currency: 'RUB',
@@ -693,7 +747,7 @@ bot.on('callback_query', async query => {
       qiwiApi.createBill( billId, fields ).then( data => {
           //do with data
           console.log(data)
-          bot.editMessageText(`Оплатите счет по ссылке ниже.`, {
+          bot.editMessageText(`Ссылка на оплату создана. После оплаты нажмите на кнопку "Проверить оплату"`, {
             message_id: message_id,
             chat_id: chat.id,
             reply_markup:  
@@ -827,13 +881,15 @@ bot.on('message', async msg => {
   const chatId = msg.chat.id
   let status_enabled = 'Включено ✅'
   let status_disabled = 'Отключено ❌'
-  let check_subscription = await check_subscription_key(chatId)
+  let check_subscription_data = await check_subscription_key(chatId)
+  
+  let check_subscription = check_subscription_data==undefined ? undefined: check_subscription_data.subscription
   
   switch(msg.text){
     case kb.home.switch:
       
-      if(check_subscription!==0){
-      
+      if(check_subscription>0){
+        
         let button_status = await getActiveStatus(chatId);
         bot.sendMessage(chatId, "Текущий статус:" , 
         {
@@ -854,7 +910,7 @@ bot.on('message', async msg => {
       }
       break
     case kb.home.settings:
-      if(check_subscription!==0){
+      if(check_subscription>0){
         let {Text, keyBoardData} = await editDisciplinesMenu(chatId)
         
         
@@ -886,7 +942,7 @@ bot.on('message', async msg => {
       break
     case kb.home.check_subscription:
       
-      if(check_subscription!==0){
+      if(check_subscription>0){
         let createdDateNow = moment(new Date()).utc().format();
         let sub_end_date = moment(createdDateNow).add(check_subscription,'days')
         bot.sendMessage(chatId, `Дней до окончания подписки: ${check_subscription}\nПодписка действует до ${sub_end_date.format('DD.MM.YYYY')}`)
@@ -962,7 +1018,7 @@ function getWeekday(){
 
 
 
-//main()
+
 async function main(){
 try {
   let date = new Date();
@@ -979,23 +1035,23 @@ try {
   
   console.log("\x1b[37m", date.toString());
   console.time('Function MAIN');
-  const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox']})
+  const browser = await puppeteer.launch({headless:true, args: [
+    
+    "--no-sandbox",
+], executablePath: '/usr/bin/chromium-browser'})
   const page = await browser.newPage();
   await page.goto('https://lk.sut.ru/cabinet/', { waitUntil: 'networkidle2' })
   page.on('dialog', async dialog => {
     await dialog.accept()
 	});
   let res = await getDataForScriptMain()
-
  
   for (let i=0; i<res.length; i++) { 
     if(!repeat_function_mode){
       let current_discipline = res[i].schedule[0][timeConverter[time]]
-        
       if(current_discipline==null)continue
       else{
           let discipline_index = res[i].disciplines.findIndex(function(item, index){
-              
               if(item.title == current_discipline.title){
               if(item.type == current_discipline.type)
               
@@ -1003,7 +1059,7 @@ try {
               }
           })
           
-          if(res[i].disciplines[discipline_index]==false)continue
+          if(res[i].disciplines[discipline_index].status==false)continue
       }
       
     }
