@@ -317,24 +317,20 @@ async function updateDisciplines(){
 }
 
 async function addUser(){
-  try{
-    await mongoClient.connect();
-    const db = mongoClient.db("AutoCheckBotDatabase");
-    const collection = db.collection("users");
-    await collection.insertOne({
-      active: true,
-      login: person.login,
-      password: encrypt(person.password),
-      group: person.group,
-      chat_id: person.chat_id,
-      disciplines: person.disciplines,
-      subscription: 7
-    }) 
-  }catch (error){
-    console.log(error)
-  }finally{
-    await mongoClient.close();
-  }
+  
+  await mongoClient.connect();
+  const db = mongoClient.db("AutoCheckBotDatabase");
+  const collection = db.collection("users");
+  await collection.insertOne({
+    active: true,
+    login: person.login,
+    password: encrypt(person.password),
+    group: person.group,
+    chat_id: person.chat_id,
+    disciplines: person.disciplines,
+    subscription: 7
+  }) 
+  
 }
 
 
@@ -600,13 +596,31 @@ async function sendNotificationAboutSubscription(){
     const db = mongoClient.db("AutoCheckBotDatabase");
     const collection = db.collection("users");
     let res = await collection.find({subscription:1},{projection:{_id:0,chat_id:1,subscription:1}}).toArray()
-    bot.sendMessage(res.chat_id, `До окончания действия вашей подписки остался ${res.subscription} день. Продлите подписку, чтобы продолжить пользоваться ботом.`)
-  }catch(error) {
+    if(res!=null)
+      bot.sendMessage(res.chat_id, `До окончания действия вашей подписки остался ${res.subscription} день. Продлите подписку, чтобы продолжить пользоваться ботом.`)
+
+    }catch(error) {
     console.log(error)
   } finally {
     await mongoClient.close();
   }
 }
+
+async function getUsers(){
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db("AutoCheckBotDatabase");
+    const collection = db.collection("users");
+    let res = await collection.find({},{projection:{_id:0,login:1,chat_id:1,subscription:1}}).toArray()
+    if(res!=null)
+      return res
+    }catch(error) {
+    console.log(error)
+  } finally {
+    await mongoClient.close();
+  }
+}
+
 async function check_subscription_key(chat_id){
   try {
     await mongoClient.connect();
@@ -643,7 +657,8 @@ bot.onText(/\/keyboard/, async msg => {
   if(check_subscription!==undefined){
     bot.sendMessage(chatId, "Выберите пункт меню ", {
       reply_markup: {
-        keyboard: keyboard.home
+        keyboard: keyboard.home,
+        resize_keyboard: true
       }
     })
   }
@@ -675,11 +690,15 @@ bot.onText(/\/encryptpass/, async msg => {
     bot.sendMessage(chatId, "Функция encryptPassword закомментирована")
     //encryptPassword();
   }
-  
-  
-  
 })
-
+bot.onText(/\/getusers/, async msg => {
+  const chatId = msg.chat.id
+  if(chatId === 458784044){
+    bot.sendMessage(chatId, 'Функция getUsers запущена')
+    let users = await getUsers()
+    bot.sendMessage(chatId, users.login,'\n',users.chat_id,'\n',users.subscription)
+  }
+})
 async function upd(chat_id,password){ 
   try {
   await mongoClient.connect();
@@ -1044,7 +1063,7 @@ try {
     10:1,
     13:2,
     14:3,
-    17:4,
+    16:4,
     18:5
   }
   
@@ -1069,7 +1088,6 @@ try {
           let discipline_index = res[i].disciplines.findIndex(function(item, index){
               if(item.title == current_discipline.title){
               if(item.type == current_discipline.type)
-              
                   return index
               }
           })
